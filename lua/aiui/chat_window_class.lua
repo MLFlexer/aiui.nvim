@@ -3,13 +3,6 @@ local nui_event = require("nui.utils.autocmd").event
 local Popup = require("nui.popup")
 local Layout = require("nui.layout")
 
--- telescope dependencies
-local pickers = require("telescope.pickers")
-local finders = require("telescope.finders")
-local conf = require("telescope.config").values
-local actions = require("telescope.actions")
-local action_state = require("telescope.actions.state")
-
 local chat_directory = "$HOME/.aiui_chats"
 
 ---@class NuiPopup
@@ -283,93 +276,6 @@ function ChatWindow:send_message(get_response)
 	get_response(question_lines, result_handler, error_handler)
 end
 
-function ChatWindow:saved_chat_picker()
-	print("STARTED")
-	return function(opts)
-		opts = opts or {}
-		pickers
-			.new(opts, {
-				prompt_title = "Load chat",
-				finder = finders.new_oneshot_job({ "find", "~/.aiui_chats", "-type", "f", "-name", '"*.md"' }, opts),
-				sorter = conf.generic_sorter(opts),
-				attach_mappings = function(prompt_bufnr, _)
-					actions.select_default:replace(function()
-						actions.close(prompt_bufnr)
-						local selection = action_state.get_selected_entry()
-						print(selection.value)
-						-- vim.schedule(function()
-						-- 	self:start_chat(selection.value)
-						-- end)
-					end)
-					return true
-				end,
-			})
-			:find()
-	end
-end
-
-function ChatWindow:chat_picker()
-	return function(opts)
-		opts = opts or {}
-		pickers
-			.new(opts, {
-				prompt_title = "Pick a chat",
-				finder = finders.new_table({
-					results = self.chats,
-					entry_maker = function(entry)
-						return {
-							value = entry,
-							display = entry.model.name,
-							ordinal = entry.model.name,
-						}
-					end,
-				}),
-				sorter = conf.generic_sorter(opts),
-				attach_mappings = function(prompt_bufnr, _)
-					actions.select_default:replace(function()
-						actions.close(prompt_bufnr)
-						local selection = action_state.get_selected_entry()
-						print(selection.value)
-						-- vim.schedule(function()
-						-- 	self:start_chat(selection.value)
-						-- end)
-					end)
-					return true
-				end,
-			})
-			:find()
-	end
-end
-
-function ChatWindow:model_picker(opts)
-	vim.print(self.models)
-	opts = opts or {}
-	pickers
-		.new(opts, {
-			prompt_title = "Pick a model to start a new chat",
-			finder = finders.new_table({
-				results = self.models,
-				entry_maker = function(entry)
-					return {
-						value = entry,
-						display = entry.model.name,
-						ordinal = entry.model.name,
-					}
-				end,
-			}),
-			sorter = conf.generic_sorter(opts),
-			attach_mappings = function(prompt_bufnr, _)
-				actions.select_default:replace(function()
-					actions.close(prompt_bufnr)
-					local selection = action_state.get_selected_entry()
-					vim.schedule(function()
-						self:new_chat(selection.value)
-					end)
-				end)
-				return true
-			end,
-		})
-		:find()
 end
 
 return ChatWindow
