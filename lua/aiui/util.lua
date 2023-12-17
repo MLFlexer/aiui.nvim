@@ -1,3 +1,24 @@
+local Job = require("plenary.job")
+
+---Get API key from command
+---@param command string
+---@param set_api_key fun(key: string)
+local function get_api_key(command, args, set_api_key)
+	Job:new({
+		command = command,
+		args = args,
+		on_exit = function(job, return_val)
+			vim.schedule(function()
+				if return_val == 0 then
+					set_api_key(job:result()[1])
+				else
+					error("Could not get API-key from " .. command)
+				end
+			end)
+		end,
+	}):start()
+end
+
 ---@param full_array any[]
 ---@param start_index integer
 ---@param end_index integer
@@ -65,4 +86,5 @@ return {
 	get_virtual_lines = get_virtual_lines,
 	highlight_lines = highlight_lines,
 	write_to_file = write_to_file,
+	get_api_key = get_api_key,
 }
