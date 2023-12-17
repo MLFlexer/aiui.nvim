@@ -6,3 +6,4 @@
 ---@field args string[]
 ---@field context any
 ---@field append_context fun(context: any): nil
+---@field ask_question fun(self: Model, question_lines: string[], handle_result: result_handler, handle_error: error_handler)

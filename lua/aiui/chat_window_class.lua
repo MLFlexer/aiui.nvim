@@ -3,7 +3,8 @@ local nui_event = require("nui.utils.autocmd").event
 local Popup = require("nui.popup")
 local Layout = require("nui.layout")
 
-local chat_directory = "$HOME/.aiui_chats"
+-- TODO: Enable user to change this
+local chat_directory = vim.fn.expand("$HOME") .. "/.aiui_chats"
 
 ---@class NuiPopup
 ---@field border any NuiPopupBorder
@@ -21,7 +22,7 @@ local chat_directory = "$HOME/.aiui_chats"
 ---@field hide function
 ---@field show function
 
----@alias Chat {model: Model, name: string, output: string[]}
+---@alias Chat {model: Model, name: string, file_path: string}
 ---@alias keymap { mode: string, key: string, handler: function, opts: table | nil }
 
 ---@class ChatWindow
@@ -60,7 +61,7 @@ function ChatWindow:new(models, starter_model, keymaps)
 		new_chat_window.chats = {}
 		new_chat_window.models = models
 		new_chat_window.keymaps = keymaps
-		new_chat_window.current_chat = { model = starter_model, output = {} }
+		new_chat_window.current_chat = { model = starter_model, name = starter_model.name, file_path = "" }
 		table.insert(new_chat_window.chats, new_chat_window.current_chat)
 
 		instance = new_chat_window
@@ -80,6 +81,11 @@ function ChatWindow:apply_keymaps()
 	for _, keymap in pairs(self.keymaps.output) do
 		self.output:map(keymap.mode, keymap.key, keymap.handler, keymap.opts)
 	end
+end
+
+---@private
+function ChatWindow:update_output_border_text()
+	self.output.border:set_text("top", self.current_chat.model.name, "center")
 end
 
 local has_been_mounted = false
@@ -144,54 +150,52 @@ function ChatWindow:toggle()
 end
 
 function ChatWindow:save_current_chat()
-	vim.print("THIS IS FROM SAVE CURRENT CHAT")
-	vim.print(vim.inspect(self))
-	if self.output == nil then
+	if not is_shown then
 		return
 	end
 
 	local lines = vim.api.nvim_buf_get_lines(self.output.bufnr, 0, -1, false)
-	if lines[1] == "" and #lines == 1 then
+	if #lines == 1 then
 		return
 	end
 
-	local currentTime = os.time()
-	local timestampFormat = "%Y-%m-%d_%H-%M"
-	local timestampString = os.date(timestampFormat, currentTime)
+	if string.len(self.current_chat.file_path) == 0 then
+		local success, error_msg = vim.fn.mkdir(
+			string.format("%s/%s/%s", chat_directory, self.current_chat.model.model, self.current_chat.model.name),
+			"p"
+		)
+		if success == 0 then
+			error(error_msg)
+			return
+		end
 
-	local command = string.format("write! %s/%s/%s.md", chat_directory, self.current_chat.model.name, timestampString)
+		local currentTime = os.time()
+		local timestampFormat = "%Y-%m-%d_%H-%M"
+		local timestampString = os.date(timestampFormat, currentTime)
+		self.current_chat.file_path = string.format(
+			"%s/%s/%s/%s.md",
+			chat_directory,
+			self.current_chat.model.model,
+			self.current_chat.model.name,
+			timestampString
+		)
+	end
+
 	vim.api.nvim_buf_call(self.output.bufnr, function()
-		vim.cmd(command)
+		vim.cmd("write! " .. self.current_chat.file_path)
 	end)
 
-	-- Write context to file
+	-- Write context
 	if #self.current_chat.model.context > 0 then
 		---@type string | nil
 		local json_context = vim.json.encode(self.current_chat.model.context)
 		if json_context ~= nil and #json_context > 1 then
-			local success, error_msg = vim.fn.mkdir(chat_directory, "p")
-			if success == 0 then
-				error(error_msg)
-				return
-			end
-
-			local file = io.open(
-				string.format("%s/%s/%s.json", chat_directory, self.current_chat.model.name, timestampString),
-				"w"
-			)
+			local file = io.open(self.current_chat.file_path:gsub("%.md$", ".json"), "w")
 			if file ~= nil then
 				file:write(json_context)
 				file:close()
 			else
-				error(
-					"file is nil: "
-						.. string.format(
-							"write! %s/%s/%s.json",
-							chat_directory,
-							self.current_chat.model.name,
-							timestampString
-						)
-				)
+				error("file is nil: " .. self.current_chat.file_path:gsub("%.md$", ".json"))
 			end
 		else
 			error("could not encode context to json")
@@ -199,27 +203,61 @@ function ChatWindow:save_current_chat()
 	end
 end
 
+---Exstract model and name from file path
+---@param file_path string
+---@return string
+---@return string
+local function get_model_name_from_file_path(file_path)
+	local model, name = file_path:match("/([^/]+)/([^/]+)/([^/]+)%.md$")
+	if model and name then
+		return model, name
+	else
+		error("Could not exstract model and name from: " .. file_path)
+	end
+end
+
 ---@param file_path string
 function ChatWindow:load_chat(file_path)
-	local command = string.format(":edit %s", file_path)
-	vim.api.nvim_buf_call(self.output.bufnr, function()
-		vim.cmd(command)
-	end)
+	local model, name = get_model_name_from_file_path(file_path)
+	local chat = { model = model, name = name, file_path = file_path }
+	self:start_chat(chat)
 end
 
 ---@param chat Chat
 function ChatWindow:start_chat(chat)
-	vim.api.nvim_buf_set_lines(self.output.bufnr, 0, -1, false, chat.output)
-	vim.api.nvim_buf_set_lines(self.input.bufnr, 0, -1, false, {})
-
+	self:open()
+	if self.current_chat.file_path == chat.file_path then
+		return
+	end
+	self:save_current_chat()
 	self.current_chat = chat
+	self:update_output_border_text()
+	vim.api.nvim_buf_set_option(self.output.bufnr, "modifiable", true)
+	if string.len(chat.file_path) == 0 then
+		vim.api.nvim_buf_set_lines(self.output.bufnr, 0, -1, false, {})
+		vim.api.nvim_buf_set_lines(self.input.bufnr, 0, -1, false, {})
+	else
+		vim.api.nvim_buf_call(self.output.bufnr, function()
+			local command = string.format("edit %s", chat.file_path)
+			vim.cmd(command)
+		end)
+		vim.api.nvim_buf_set_lines(self.input.bufnr, 0, -1, false, {})
+	end
+	vim.api.nvim_buf_set_option(self.output.bufnr, "modifiable", false)
 end
 
 ---@param model Model
 function ChatWindow:new_chat(model)
+	self:open()
 	self:save_current_chat()
-	self.current_chat = { model = model, output = {} }
+	self.current_chat = { model = model, file_path = "" }
 	table.insert(self.chats, self.current_chat)
+	self:update_output_border_text()
+
+	vim.api.nvim_buf_set_option(self.output.bufnr, "modifiable", true)
+	vim.api.nvim_buf_set_lines(self.output.bufnr, 0, -1, false, {})
+	vim.api.nvim_buf_set_lines(self.input.bufnr, 0, -1, false, {})
+	vim.api.nvim_buf_set_option(self.output.bufnr, "modifiable", false)
 end
 
 ---@param lines string[]
@@ -233,8 +271,7 @@ local function is_lines_whitespace(lines)
 	return true
 end
 
----@param get_response fun(question_lines: string[], result_handler: result_handler, error_handler: error_handler): nil
-function ChatWindow:send_message(get_response)
+function ChatWindow:send_message()
 	local input = self.input
 	local output = self.output
 	if input == nil or output == nil then
@@ -243,28 +280,25 @@ function ChatWindow:send_message(get_response)
 	local question_lines = vim.api.nvim_buf_get_lines(input.bufnr, 0, -1, false)
 	-- dont do anything if input is only whitespace
 	if is_lines_whitespace(question_lines) then
-		error("Question is empty")
+		return
 	end
-	vim.api.nvim_buf_set_option(output.bufnr, "readonly", false)
 	vim.api.nvim_buf_set_option(output.bufnr, "modifiable", true)
-
 	local num_lines_before = vim.api.nvim_buf_line_count(output.bufnr)
 	vim.api.nvim_buf_set_lines(output.bufnr, -1, -1, false, question_lines)
 	util.highlight_lines(output.bufnr, num_lines_before, num_lines_before + #question_lines - 1, "DiffChange")
-	vim.api.nvim_buf_set_option(output.bufnr, "readonly", true)
 	vim.api.nvim_buf_set_option(output.bufnr, "modifiable", false)
+
 	local output_window_id = vim.fn.bufwinid(output.bufnr)
 	vim.api.nvim_win_set_cursor(output_window_id, { vim.api.nvim_buf_line_count(output.bufnr), 0 })
 	vim.api.nvim_buf_set_lines(input.bufnr, 0, -1, false, {})
 
 	local function result_handler(response_lines)
-		vim.api.nvim_buf_set_option(output.bufnr, "readonly", false)
 		vim.api.nvim_buf_set_option(output.bufnr, "modifiable", true)
 		vim.api.nvim_buf_set_lines(output.bufnr, -1, -1, false, response_lines)
-		vim.api.nvim_buf_set_option(output.bufnr, "readonly", true)
 		vim.api.nvim_buf_set_option(output.bufnr, "modifiable", false)
 		vim.api.nvim_win_set_cursor(output_window_id, { vim.api.nvim_buf_line_count(output.bufnr), 0 })
 		util.highlight_lines(output.bufnr, num_lines_before, num_lines_before + #question_lines - 1, "DiffAdd")
+		self:save_current_chat()
 	end
 
 	local function error_handler(_, return_val)
@@ -273,9 +307,8 @@ function ChatWindow:send_message(get_response)
 	end
 
 	vim.print("getting response")
-	get_response(question_lines, result_handler, error_handler)
-end
-
+	self.current_chat.model:ask_question(question_lines, result_handler, error_handler)
+	-- get_response(question_lines, result_handler, error_handler)
 end
 
 return ChatWindow

@@ -28,8 +28,7 @@ OllamaModel = {
 ---@return OllamaModel
 function OllamaModel:new(name, model, system_content, command, args, context)
 	local new_ollama_model = {}
-	setmetatable(new_ollama_model, self)
-	self.__index = self
+	setmetatable(new_ollama_model, { __index = self })
 	new_ollama_model.name = name
 	new_ollama_model.model = model
 	new_ollama_model.system_content = system_content
