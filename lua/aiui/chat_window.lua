@@ -22,7 +22,7 @@ local chat_directory = vim.fn.expand("$HOME") .. "/.aiui_chats"
 ---@field hide function
 ---@field show function
 
----@alias Chat {model: Model, name: string, file_path: string}
+---@alias Chat {model: string, name: string, file_path: string}
 ---@alias keymap { mode: string, key: string, handler: function, opts: table | nil }
 
 ---@class ChatWindow
@@ -31,7 +31,7 @@ local chat_directory = vim.fn.expand("$HOME") .. "/.aiui_chats"
 ---@field chats Chat[]
 ---@field current_chat Chat
 ---@field keymaps { input: keymap[], output: keymap[] }
----@field models Model[]
+---@field model_map table<string, Model>
 ---@field input NuiPopup | nil
 ---@field output NuiPopup | nil
 local ChatWindow = {}
@@ -50,18 +50,18 @@ function ChatWindow:get_instance()
 end
 
 ---Create or get ChatWindow instance (singleton)
----@param models Model[]
----@param starter_model Model
+---@param model_map<string, Model>
+---@param starter_model string
 ---@param keymaps { input: keymap[], output: keymap[] }
 ---@return ChatWindow
-function ChatWindow:new(models, starter_model, keymaps)
+function ChatWindow:new(model_map, starter_model, keymaps)
 	if instance == nil then
 		local new_chat_window = ChatWindow
 		setmetatable(new_chat_window, { __index = self })
 		new_chat_window.chats = {}
-		new_chat_window.models = models
+		new_chat_window.model_map = model_map
 		new_chat_window.keymaps = keymaps
-		new_chat_window.current_chat = { model = starter_model, name = starter_model.name, file_path = "" }
+		new_chat_window.current_chat = { model = starter_model, name = starter_model, file_path = "" }
 		table.insert(new_chat_window.chats, new_chat_window.current_chat)
 
 		instance = new_chat_window
@@ -71,7 +71,7 @@ end
 
 ---@param model Model
 function ChatWindow:add_model(model)
-	table.insert(self.models, model)
+	self.model_map[model.name] = model
 end
 
 function ChatWindow:apply_keymaps()
@@ -138,6 +138,8 @@ function ChatWindow:close()
 	end
 	self:save_current_chat()
 	self.layout:hide()
+	-- self.layout:unmount()
+	-- has_been_mounted = false
 	is_shown = false
 end
 
@@ -232,6 +234,14 @@ function ChatWindow:start_chat(chat)
 	self:save_current_chat()
 	self.current_chat = chat
 	self:update_output_border_text()
+
+	vim.print("current_chat")
+	vim.print(vim.inspect(self.current_chat))
+	vim.print("chat")
+	vim.print(vim.inspect(chat))
+	vim.print("chats")
+	vim.print(vim.inspect(self.chats))
+
 	vim.api.nvim_buf_set_option(self.output.bufnr, "modifiable", true)
 	if string.len(chat.file_path) == 0 then
 		vim.api.nvim_buf_set_lines(self.output.bufnr, 0, -1, false, {})
