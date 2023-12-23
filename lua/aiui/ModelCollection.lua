@@ -1,5 +1,3 @@
----@alias client_list ModelClient[]
-
 ---key: agent name, value: system prompt
 ---@alias agent_map table<string, string>
 
@@ -10,7 +8,6 @@
 ---@alias instance_list instance[]
 
 ---@class ModelCollection
----@field clients client_list
 ---@field models model_map
 ---@field agents agent_map
 ---@field instances instance_list
@@ -35,13 +32,6 @@ end
 function ModelCollection:add_models(models)
 	for name, model_client in pairs(models) do
 		self.models[name] = model_client
-	end
-end
-
----@param clients client_list
-function ModelCollection:add_clients(clients)
-	for _, client in ipairs(clients) do
-		table.insert(self.clients, client)
 	end
 end
 
