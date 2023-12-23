@@ -40,7 +40,7 @@ function Chat:new()
 	}
 	local input_window_opts = {
 		relative = "win",
-		row = output_height + 4,
+		row = output_height + 1,
 		col = vim.o.columns,
 		width = width,
 		height = vim.o.lines - output_height - 4,
