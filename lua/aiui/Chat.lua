@@ -1,4 +1,3 @@
-local api = vim.api
 
 ---@alias WindowOpts { relative: string, row: integer, col: integer, width: integer, height: integer, border: string, style: string, title: string, title_pos: string,}
 
@@ -30,12 +29,12 @@ function Chat:new()
 		-- footer = "OUTPUT",
 		-- footer_pos = "center",
 	}
-	local output_buffer = api.nvim_create_buf(false, false)
-	api.nvim_buf_set_option(output_buffer, "filetype", "markdown")
+	local output_buffer = vim.api.nvim_create_buf(false, false)
+	vim.api.nvim_buf_set_option(output_buffer, "filetype", "markdown")
 	self.output = {
 		window_opts = output_window_opts,
 		buffer_handle = output_buffer,
-		window_handle = api.nvim_open_win(output_buffer, false, output_window_opts),
+		window_handle = vim.api.nvim_open_win(output_buffer, false, output_window_opts),
 		is_empty = true,
 	}
 	local input_window_opts = {
@@ -49,12 +48,12 @@ function Chat:new()
 		title = "INPUT",
 		title_pos = "center",
 	}
-	local input_buffer = api.nvim_create_buf(false, false)
-	api.nvim_buf_set_option(input_buffer, "filetype", "markdown")
+	local input_buffer = vim.api.nvim_create_buf(false, false)
+	vim.api.nvim_buf_set_option(input_buffer, "filetype", "markdown")
 	self.input = {
 		window_opts = input_window_opts,
 		buffer_handle = input_buffer,
-		window_handle = api.nvim_open_win(input_buffer, true, input_window_opts),
+		window_handle = vim.api.nvim_open_win(input_buffer, true, input_window_opts),
 	}
 	self.is_hidden = false
 end
@@ -189,17 +188,13 @@ function Chat:append_output_lines(lines, prefix_lines)
 end
 
 vim.api.nvim_create_user_command("AN", function()
-	vim.print(api.nvim_list_wins())
 	Chat:new()
 	Chat:apply_default_keymaps()
 	Chat:apply_autocmd()
-	vim.print(api.nvim_list_wins())
 end, {})
 
 vim.api.nvim_create_user_command("AT", function()
-	vim.print(api.nvim_list_wins())
 	Chat:toggle()
-	vim.print(api.nvim_list_wins())
 end, {})
 
 return Chat
