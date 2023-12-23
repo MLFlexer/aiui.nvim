@@ -1,3 +1,4 @@
+local ModelCollection = require("aiui.ModelCollection")
 
 ---@alias WindowOpts { relative: string, row: integer, col: integer, width: integer, height: integer, border: string, style: string, title: string, title_pos: string,}
 
@@ -7,13 +8,16 @@
 ---@class Chat
 ---@field input InputWindow
 ---@field output OutputWindow
+---@field instance instance
 ---@field is_hidden boolean
 local Chat = {}
 
-function Chat:new()
+---@param start_instance instance
+function Chat:new(start_instance)
 	if not next(self) then
 		return
 	end
+	self.instance = start_instance
 	local width = math.floor(vim.o.columns / 3)
 	local output_height = math.floor(vim.o.lines * 0.8)
 	local output_window_opts = {
@@ -24,7 +28,7 @@ function Chat:new()
 		height = output_height,
 		border = "rounded",
 		style = "minimal",
-		title = "OUTPUT",
+		title = start_instance.name,
 		title_pos = "center",
 		-- footer = "OUTPUT",
 		-- footer_pos = "center",
@@ -163,6 +167,14 @@ function Chat:request_model()
 	end
 	self:append_output_lines(prompt, { "# You:" })
 	vim.api.nvim_buf_set_lines(Chat.input.buffer_handle, 0, -1, false, {})
+	local function result_handler(result_lines)
+		self:append_output_lines(result_lines, { "# them:" })
+	end
+	local function error_handler(error)
+		error("FAILED REQUEST")
+	end
+
+	ModelCollection:request_response(self.instance, prompt, result_handler, error_handler)
 end
 
 function Chat:get_input_lines()
@@ -188,7 +200,12 @@ function Chat:append_output_lines(lines, prefix_lines)
 end
 
 vim.api.nvim_create_user_command("AN", function()
-	Chat:new()
+	local test_model = require("testing.models.test_model")
+	ModelCollection:add_models({ testing_model = test_model })
+	ModelCollection:add_agents({ testing_agent = "testing agent system prompt" })
+	local instance = { name = "testing instance", model = "testing_model", context = {}, agent = "testing_agent" }
+	ModelCollection:add_instance(instance)
+	Chat:new(instance)
 	Chat:apply_default_keymaps()
 	Chat:apply_autocmd()
 end, {})
