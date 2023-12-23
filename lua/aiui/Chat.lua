@@ -70,7 +70,7 @@ function Chat:toggle()
 	end
 end
 ---sets keymaps for the input/output buffer
----@param input_keymaps function[]
+---@param input_keymaps fun(buffer)[]
 ---@param output_keymaps fun(buffer)[]
 function Chat:set_keymaps(input_keymaps, output_keymaps)
 	self.output.keymaps = output_keymaps
@@ -88,6 +88,7 @@ function Chat:apply_keymaps()
 end
 
 ---Creates a keymap function
+---To be used with set_keymaps()
 ---@param mode string
 ---@param lhs string
 ---@param rhs string | function
