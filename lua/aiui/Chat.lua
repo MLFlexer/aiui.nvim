@@ -1,4 +1,4 @@
-local api = vim.api
+local ModelCollection = require("aiui.ModelCollection")
 
 ---@alias WindowOpts { relative: string, row: integer, col: integer, width: integer, height: integer, border: string, style: string, title: string, title_pos: string,}
 
@@ -8,13 +8,16 @@ local api = vim.api
 ---@class Chat
 ---@field input InputWindow
 ---@field output OutputWindow
+---@field instance instance
 ---@field is_hidden boolean
 local Chat = {}
 
-function Chat:new()
+---@param start_instance instance
+function Chat:new(start_instance)
 	if not next(self) then
 		return
 	end
+	self.instance = start_instance
 	local width = math.floor(vim.o.columns / 3)
 	local output_height = math.floor(vim.o.lines * 0.8)
 	local output_window_opts = {
@@ -25,17 +28,17 @@ function Chat:new()
 		height = output_height,
 		border = "rounded",
 		style = "minimal",
-		title = "OUTPUT",
+		title = start_instance.name,
 		title_pos = "center",
 		-- footer = "OUTPUT",
 		-- footer_pos = "center",
 	}
-	local output_buffer = api.nvim_create_buf(false, false)
-	api.nvim_buf_set_option(output_buffer, "filetype", "markdown")
+	local output_buffer = vim.api.nvim_create_buf(false, false)
+	vim.api.nvim_buf_set_option(output_buffer, "filetype", "markdown")
 	self.output = {
 		window_opts = output_window_opts,
 		buffer_handle = output_buffer,
-		window_handle = api.nvim_open_win(output_buffer, false, output_window_opts),
+		window_handle = vim.api.nvim_open_win(output_buffer, false, output_window_opts),
 		is_empty = true,
 	}
 	local input_window_opts = {
@@ -49,12 +52,12 @@ function Chat:new()
 		title = "INPUT",
 		title_pos = "center",
 	}
-	local input_buffer = api.nvim_create_buf(false, false)
-	api.nvim_buf_set_option(input_buffer, "filetype", "markdown")
+	local input_buffer = vim.api.nvim_create_buf(false, false)
+	vim.api.nvim_buf_set_option(input_buffer, "filetype", "markdown")
 	self.input = {
 		window_opts = input_window_opts,
 		buffer_handle = input_buffer,
-		window_handle = api.nvim_open_win(input_buffer, true, input_window_opts),
+		window_handle = vim.api.nvim_open_win(input_buffer, true, input_window_opts),
 	}
 	self.is_hidden = false
 end
@@ -164,6 +167,14 @@ function Chat:request_model()
 	end
 	self:append_output_lines(prompt, { "# You:" })
 	vim.api.nvim_buf_set_lines(Chat.input.buffer_handle, 0, -1, false, {})
+	local function result_handler(result_lines)
+		self:append_output_lines(result_lines, { "# them:" })
+	end
+	local function error_handler(error)
+		error("FAILED REQUEST")
+	end
+
+	ModelCollection:request_response(self.instance, prompt, result_handler, error_handler)
 end
 
 function Chat:get_input_lines()
@@ -189,17 +200,26 @@ function Chat:append_output_lines(lines, prefix_lines)
 end
 
 vim.api.nvim_create_user_command("AN", function()
-	vim.print(api.nvim_list_wins())
-	Chat:new()
+	local test_model = require("testing.models.test_model")
+	local ollama_model = require("models.clients.ollama.ollama_curl")
+	ModelCollection:add_models({
+		testing_model = { name = "testing_model", client = test_model },
+		orca_mini = { name = "orca-mini", client = ollama_model },
+	})
+	ModelCollection:add_agents({
+		testing_agent = "testing agent system prompt",
+		random_agent = "always respond with a number between 0 and 10.",
+	})
+	local instance = { name = "testing instance", model = "testing_model", context = {}, agent = "testing_agent" }
+	instance = { name = "ollama instance", model = "orca_mini", context = {}, agent = "random_agent" }
+	ModelCollection:add_instance(instance)
+	Chat:new(instance)
 	Chat:apply_default_keymaps()
 	Chat:apply_autocmd()
-	vim.print(api.nvim_list_wins())
 end, {})
 
 vim.api.nvim_create_user_command("AT", function()
-	vim.print(api.nvim_list_wins())
 	Chat:toggle()
-	vim.print(api.nvim_list_wins())
 end, {})
 
 return Chat

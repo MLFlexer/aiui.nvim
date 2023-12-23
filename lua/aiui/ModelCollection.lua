@@ -1,21 +1,23 @@
----@alias client_list ModelClient[]
-
 ---key: agent name, value: system prompt
 ---@alias agent_map table<string, string>
 
----key: model name, value: client
----@alias model_map table<string, ModelClient>
+---key: model name, value: {name: string, client: ModelClient}
+---@alias model_map table<string, {name: string, client: ModelClient}>
 
 ---@alias instance {name: string, model: string, context: any[], agent: string}
 ---@alias instance_list instance[]
 
 ---@class ModelCollection
----@field clients client_list
 ---@field models model_map
 ---@field agents agent_map
 ---@field instances instance_list
 
 local ModelCollection = { agents = {}, clients = {}, instances = {}, models = {} }
+
+---@param instance instance
+function ModelCollection:add_instance(instance)
+	table.insert(self.instances, instance)
+end
 
 ---@param instances instance_list
 function ModelCollection:add_instances(instances)
@@ -38,29 +40,22 @@ function ModelCollection:add_models(models)
 	end
 end
 
----@param clients client_list
-function ModelCollection:add_clients(clients)
-	for _, client in ipairs(clients) do
-		table.insert(self.clients, client)
-	end
-end
-
 ---Request response to msg_lines for an instance
 ---@param instance instance
 ---@param msg_lines string[]
 ---@param result_handler result_handler
 ---@param error_handler error_handler
 function ModelCollection:request_response(instance, msg_lines, result_handler, error_handler)
-	local client = self.models[instance.model]
-	client:request(
-		instance.model,
+	local model = self.models[instance.model]
+	model.client:request(
+		model.name,
 		msg_lines,
 		self.agents[instance.agent],
 		instance.context,
 		result_handler,
 		error_handler,
 		function(new_context)
-			instance.context = client.context_handler(new_context, instance.context)
+			instance.context = model.client.context_handler(new_context, instance.context)
 		end
 	)
 end
