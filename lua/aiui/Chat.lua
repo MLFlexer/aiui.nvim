@@ -116,6 +116,22 @@ function Chat:make_keymap(mode, lhs, rhs, opts)
 	end
 end
 
+function Chat:apply_default_keymaps()
+	local input_keymaps = {
+		self:make_keymap("n", "<ESC>", function()
+			self:toggle()
+		end, {}),
+		self:make_keymap("n", "<CR>", function()
+			self:request_model()
+		end, {}),
+	}
+	local output_keymaps = { self:make_keymap("n", "<ESC>", function()
+		self:toggle()
+	end, {}) }
+	self:set_keymaps(input_keymaps, output_keymaps)
+	self:apply_keymaps()
+end
+
 ---Makes sure the windows are hidden when the user uses ":q" or other
 ---See https://neovim.io/doc/user/autocmd.html#autocmd-events
 function Chat:apply_autocmd()
@@ -123,18 +139,14 @@ function Chat:apply_autocmd()
 		buffer = self.input.buffer_handle,
 		callback = function(ev)
 			vim.print(string.format("input! event fired: %s", vim.inspect(ev)))
-			-- if not self.is_hidden then
 			self:hide()
-			-- end
 		end,
 	})
 	vim.api.nvim_create_autocmd({ "BufDelete", "QuitPre", "BufUnload" }, {
 		buffer = self.output.buffer_handle,
 		callback = function(ev)
 			vim.print(string.format("output! event fired: %s", vim.inspect(ev)))
-			-- if not self.is_hidden then
 			self:hide()
-			-- end
 		end,
 	})
 end
