@@ -101,19 +101,25 @@ function Chat:make_keymap(mode, lhs, rhs, opts)
 	end
 end
 
+---Makes sure the windows are hidden when the user uses ":q" or other
+---See https://neovim.io/doc/user/autocmd.html#autocmd-events
 function Chat:apply_autocmd()
-	vim.api.nvim_create_autocmd({ "BufDelete", "BufLeave" }, {
+	vim.api.nvim_create_autocmd({ "BufDelete", "QuitPre", "BufUnload" }, {
 		buffer = self.input.buffer_handle,
 		callback = function(ev)
 			vim.print(string.format("input! event fired: %s", vim.inspect(ev)))
+			-- if not self.is_hidden then
 			self:hide()
+			-- end
 		end,
 	})
-	vim.api.nvim_create_autocmd({ "BufDelete", "BufLeave" }, {
+	vim.api.nvim_create_autocmd({ "BufDelete", "QuitPre", "BufUnload" }, {
 		buffer = self.output.buffer_handle,
 		callback = function(ev)
 			vim.print(string.format("output! event fired: %s", vim.inspect(ev)))
+			-- if not self.is_hidden then
 			self:hide()
+			-- end
 		end,
 	})
 end
