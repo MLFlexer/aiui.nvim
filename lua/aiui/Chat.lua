@@ -12,6 +12,9 @@ local api = vim.api
 local Chat = {}
 
 function Chat:new()
+	if not next(self) then
+		return
+	end
 	local width = math.floor(vim.o.columns / 3)
 	local output_height = math.floor(vim.o.lines * 0.8)
 	local output_window_opts = {
@@ -26,10 +29,11 @@ function Chat:new()
 		title_pos = "center",
 	}
 	local output_buffer = api.nvim_create_buf(false, false)
+	api.nvim_buf_set_option(output_buffer, "filetype", "markdown")
 	self.output = {
 		window_opts = output_window_opts,
 		buffer_handle = output_buffer,
-		window_handle = api.nvim_open_win(output_buffer, true, output_window_opts),
+		window_handle = api.nvim_open_win(output_buffer, false, output_window_opts),
 	}
 	local input_window_opts = {
 		relative = "win",
@@ -43,6 +47,7 @@ function Chat:new()
 		title_pos = "center",
 	}
 	local input_buffer = api.nvim_create_buf(false, false)
+	api.nvim_buf_set_option(input_buffer, "filetype", "markdown")
 	self.input = {
 		window_opts = input_window_opts,
 		buffer_handle = input_buffer,
