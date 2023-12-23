@@ -1,13 +1,7 @@
 ---@alias client_list ModelClient[]
 
----alias agent {agent_name: string, system_prompt: string}
----alias agent_list agent[]
-
 ---key: agent name, value: system prompt
 ---@alias agent_map table<string, string>
-
----alias Model {model_name: string, client: ModelClient}
----alias model_list Model[]
 
 ---key: model name, value: client
 ---@alias model_map table<string, ModelClient>
