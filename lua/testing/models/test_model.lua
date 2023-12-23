@@ -51,21 +51,24 @@ local function on_exit_request(result_handler, error_handler, context_handler)
 	return function(job, return_val)
 		vim.schedule(function()
 			if return_val == 0 then
+				-- result_handler(job:result())
+				-- context_handler(job:result())
+
 				---@type {error: nil | string, choices: {message: message}} | nil
 				local response_table = vim.fn.json_decode(job:result())
 				if response_table == nil then
 					error_handler(job, return_val)
 					return
-				elseif response_table.error == nil then
-					local response_content = response_table.choices[1].message.content
+				else
+					local response_content = vim.inspect(response_table)
+					context_handler(response_table.messages)
+					vim.print("THIS IS THE CONTENT")
+					vim.print(vim.inspect(response_table))
 					local content_lines = {}
 					for line in response_content:gmatch("[^\n]+") do
 						table.insert(content_lines, line)
 					end
 					result_handler(content_lines)
-					context_handler(response_table.choices[1].message)
-				else
-					error_handler(job, return_val)
 				end
 			else
 				error_handler(job, return_val)
@@ -84,9 +87,10 @@ end
 ---@param context_handler context_handler
 function TestModel:request(model_name, request_msg, system_msg, context, result_handler, error_handler, context_handler)
 	local prompt = table.concat(request_msg, "\n")
-	local request_table = { model = model_name }
+	local request_table = { model = model_name, messages = {} }
 	if has_empty_context(context) then
-		if string.len(system_msg) ~= "" then
+		if string.len(system_msg) > 0 then
+			vim.print(vim.inspect(request_table))
 			table.insert(request_table.messages, { role = "system", content = system_msg })
 		end
 		table.insert(request_table.messages, { role = "user", content = prompt })
@@ -102,7 +106,7 @@ function TestModel:request(model_name, request_msg, system_msg, context, result_
 	local args = insert_request_body(json_body, self.args)
 	Job:new({
 		command = self.command,
-		args = args,
+		args = { json_body },
 		on_exit = on_exit_request(result_handler, error_handler, context_handler),
 	}):start()
 end
