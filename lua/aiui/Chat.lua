@@ -3,7 +3,7 @@ local api = vim.api
 ---@alias WindowOpts { relative: string, row: integer, col: integer, width: integer, height: integer, border: string, style: string, title: string, title_pos: string,}
 
 ---@alias InputWindow {window_handle: integer, buffer_handle: integer, window_opts: WindowOpts, keymaps: function[]}
----@alias OutputWindow {window_handle: integer, buffer_handle: integer, window_opts: WindowOpts, keymaps: function[]}
+---@alias OutputWindow {window_handle: integer, buffer_handle: integer, window_opts: WindowOpts, keymaps: function[], is_empty: boolean}
 
 ---@class Chat
 ---@field input InputWindow
@@ -27,6 +27,8 @@ function Chat:new()
 		style = "minimal",
 		title = "OUTPUT",
 		title_pos = "center",
+		-- footer = "OUTPUT",
+		-- footer_pos = "center",
 	}
 	local output_buffer = api.nvim_create_buf(false, false)
 	api.nvim_buf_set_option(output_buffer, "filetype", "markdown")
@@ -34,6 +36,7 @@ function Chat:new()
 		window_opts = output_window_opts,
 		buffer_handle = output_buffer,
 		window_handle = api.nvim_open_win(output_buffer, false, output_window_opts),
+		is_empty = true,
 	}
 	local input_window_opts = {
 		relative = "win",
@@ -154,16 +157,41 @@ end
 function Chat:request_model()
 	-- FIX: change this function
 	vim.print("REQUESTING MODEL")
+
+	local prompt = self:get_input_lines()
+	if #prompt == 0 then
+		return
+	end
+	self:append_output_lines(prompt, { "# You:" })
 	vim.api.nvim_buf_set_lines(Chat.input.buffer_handle, 0, -1, false, {})
-	vim.api.nvim_buf_set_lines(Chat.output.buffer_handle, -1, -1, false, { "This is a line" })
+end
+
+function Chat:get_input_lines()
+	return vim.api.nvim_buf_get_lines(self.input.buffer_handle, 0, -1, false)
+end
+
+---Append lines of output buffer
+---@param lines string[]
+---@param prefix_lines string[] | nil
+function Chat:append_output_lines(lines, prefix_lines)
+	local starting_line = -1
+	if self.output.is_empty then
+		starting_line = 0
+		self.output.is_empty = false
+	end
+	vim.print(vim.api.nvim_buf_line_count(self.output.buffer_handle))
+	vim.print(vim.api.nvim_buf_get_lines(self.output.buffer_handle, 0, -1, false))
+	if prefix_lines ~= nil then
+		vim.api.nvim_buf_set_lines(self.output.buffer_handle, starting_line, -1, false, prefix_lines)
+		starting_line = -1
+	end
+	vim.api.nvim_buf_set_lines(self.output.buffer_handle, starting_line, -1, false, lines)
 end
 
 vim.api.nvim_create_user_command("AN", function()
 	vim.print(api.nvim_list_wins())
 	Chat:new()
-	Chat:set_keymaps({ Chat:make_keymap("n", "<CR>", function()
-		Chat:request_model()
-	end, {}) }, {})
+	Chat:apply_default_keymaps()
 	Chat:apply_autocmd()
 	vim.print(api.nvim_list_wins())
 end, {})
