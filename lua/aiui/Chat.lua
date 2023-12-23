@@ -50,4 +50,40 @@ function Chat:new()
 	}
 end
 
+function Chat:show()
+	self.output.window_handle = vim.api.nvim_open_win(self.output.buffer_handle, true, self.output.window_opts)
+	self.input.window_handle = vim.api.nvim_open_win(self.input.buffer_handle, true, self.input.window_opts)
+end
+
+function Chat:hide()
+	vim.api.nvim_win_hide(self.output.window_handle)
+	vim.api.nvim_win_hide(self.input.window_handle)
+end
+
+function Chat:toggle()
+	if self.is_hidden then
+		self:show()
+		self.is_hidden = false
+	else
+		self:hide()
+		self.is_hidden = true
+	end
+end
+
+vim.api.nvim_create_user_command("AN", function()
+	vim.print(api.nvim_list_wins())
+	Chat:new()
+	Chat:set_keymaps({ Chat:make_keymap("n", "<CR>", function()
+		Chat:request_model()
+	end, {}) }, {})
+	Chat:apply_autocmd()
+	vim.print(api.nvim_list_wins())
+end, {})
+
+vim.api.nvim_create_user_command("AT", function()
+	vim.print(api.nvim_list_wins())
+	Chat:toggle()
+	vim.print(api.nvim_list_wins())
+end, {})
+
 return Chat
