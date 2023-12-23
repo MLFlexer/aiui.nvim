@@ -1,9 +1,0 @@
----@class Model
----@field name string
----@field model string
----@field system_content string
----@field command string
----@field args string[]
----@field context any
----@field append_context fun(context: any): nil
----@field ask_question fun(self: Model, question_lines: string[], handle_result: result_handler, handle_error: error_handler)
