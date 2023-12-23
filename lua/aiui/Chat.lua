@@ -69,6 +69,60 @@ function Chat:toggle()
 		self.is_hidden = true
 	end
 end
+---sets keymaps for the input/output buffer
+---@param input_keymaps function[]
+---@param output_keymaps fun(buffer)[]
+function Chat:set_keymaps(input_keymaps, output_keymaps)
+	self.output.keymaps = output_keymaps
+	self.input.keymaps = input_keymaps
+	self:apply_keymaps()
+end
+
+function Chat:apply_keymaps()
+	for _, keymap in ipairs(self.input.keymaps) do
+		keymap(self.input.buffer_handle)
+	end
+	for _, keymap in ipairs(self.output.keymaps) do
+		keymap(self.output.buffer_handle)
+	end
+end
+
+---Creates a keymap function
+---@param mode string
+---@param lhs string
+---@param rhs string | function
+---@param opts table
+---@return function
+function Chat:make_keymap(mode, lhs, rhs, opts)
+	return function(buffer)
+		opts.buffer = buffer
+		vim.keymap.set(mode, lhs, rhs, opts)
+	end
+end
+
+function Chat:apply_autocmd()
+	vim.api.nvim_create_autocmd({ "BufDelete", "BufLeave" }, {
+		buffer = self.input.buffer_handle,
+		callback = function(ev)
+			vim.print(string.format("input! event fired: %s", vim.inspect(ev)))
+			self:hide()
+		end,
+	})
+	vim.api.nvim_create_autocmd({ "BufDelete", "BufLeave" }, {
+		buffer = self.output.buffer_handle,
+		callback = function(ev)
+			vim.print(string.format("output! event fired: %s", vim.inspect(ev)))
+			self:hide()
+		end,
+	})
+end
+
+function Chat:request_model()
+	-- FIX: change this function
+	vim.print("REQUESTING MODEL")
+	vim.api.nvim_buf_set_lines(Chat.input.buffer_handle, 0, -1, false, {})
+	vim.api.nvim_buf_set_lines(Chat.output.buffer_handle, -1, -1, false, { "This is a line" })
+end
 
 vim.api.nvim_create_user_command("AN", function()
 	vim.print(api.nvim_list_wins())
