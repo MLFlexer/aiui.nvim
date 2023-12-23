@@ -1,8 +1,8 @@
 ---key: agent name, value: system prompt
 ---@alias agent_map table<string, string>
 
----key: model name, value: client
----@alias model_map table<string, ModelClient>
+---key: model name, value: {name: string, client: ModelClient}
+---@alias model_map table<string, {name: string, client: ModelClient}>
 
 ---@alias instance {name: string, model: string, context: any[], agent: string}
 ---@alias instance_list instance[]
@@ -46,16 +46,16 @@ end
 ---@param result_handler result_handler
 ---@param error_handler error_handler
 function ModelCollection:request_response(instance, msg_lines, result_handler, error_handler)
-	local client = self.models[instance.model]
-	client:request(
-		instance.model,
+	local model = self.models[instance.model]
+	model.client:request(
+		model.name,
 		msg_lines,
 		self.agents[instance.agent],
 		instance.context,
 		result_handler,
 		error_handler,
 		function(new_context)
-			instance.context = client.context_handler(new_context, instance.context)
+			instance.context = model.client.context_handler(new_context, instance.context)
 		end
 	)
 end
