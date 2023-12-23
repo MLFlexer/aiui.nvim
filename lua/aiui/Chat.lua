@@ -201,9 +201,17 @@ end
 
 vim.api.nvim_create_user_command("AN", function()
 	local test_model = require("testing.models.test_model")
-	ModelCollection:add_models({ testing_model = test_model })
-	ModelCollection:add_agents({ testing_agent = "testing agent system prompt" })
+	local ollama_model = require("models.clients.ollama.ollama_curl")
+	ModelCollection:add_models({
+		testing_model = { name = "testing_model", client = test_model },
+		orca_mini = { name = "orca-mini", client = ollama_model },
+	})
+	ModelCollection:add_agents({
+		testing_agent = "testing agent system prompt",
+		random_agent = "always respond with a number between 0 and 10.",
+	})
 	local instance = { name = "testing instance", model = "testing_model", context = {}, agent = "testing_agent" }
+	instance = { name = "ollama instance", model = "orca_mini", context = {}, agent = "random_agent" }
 	ModelCollection:add_instance(instance)
 	Chat:new(instance)
 	Chat:apply_default_keymaps()
