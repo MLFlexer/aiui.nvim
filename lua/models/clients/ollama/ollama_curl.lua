@@ -78,7 +78,7 @@ function OllamaModel:request(
 	local prompt = table.concat(request_msg, "\n")
 	local request_table = { model = model_name, prompt = prompt, stream = false }
 	if has_empty_context(context) then
-		if string.len(system_msg) ~= "" then
+		if string.len(system_msg) > 0 then
 			request_table.system = system_msg
 		end
 	else

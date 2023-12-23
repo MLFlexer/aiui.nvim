@@ -94,9 +94,9 @@ function OpenAIModel:request(
 	context_handler
 )
 	local prompt = table.concat(request_msg, "\n")
-	local request_table = { model = model_name }
+	local request_table = { model = model_name, messages = {} }
 	if has_empty_context(context) then
-		if string.len(system_msg) ~= "" then
+		if string.len(system_msg) > 0 then
 			table.insert(request_table.messages, { role = "system", content = system_msg })
 		end
 		table.insert(request_table.messages, { role = "user", content = prompt })
