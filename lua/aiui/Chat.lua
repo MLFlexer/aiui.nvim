@@ -48,14 +48,25 @@ function Chat:new()
 		buffer_handle = input_buffer,
 		window_handle = api.nvim_open_win(input_buffer, true, input_window_opts),
 	}
+	self.is_hidden = false
 end
 
 function Chat:show()
-	self.output.window_handle = vim.api.nvim_open_win(self.output.buffer_handle, true, self.output.window_opts)
+	vim.print(self.output.window_opts)
+	if not self.is_hidden then
+		return
+	end
+	self.is_hidden = false
+	-- output has to be shown before input, otherwise the placement will be off
+	self.output.window_handle = vim.api.nvim_open_win(self.output.buffer_handle, false, self.output.window_opts)
 	self.input.window_handle = vim.api.nvim_open_win(self.input.buffer_handle, true, self.input.window_opts)
 end
 
 function Chat:hide()
+	if self.is_hidden then
+		return
+	end
+	self.is_hidden = true
 	vim.api.nvim_win_hide(self.output.window_handle)
 	vim.api.nvim_win_hide(self.input.window_handle)
 end
@@ -63,12 +74,11 @@ end
 function Chat:toggle()
 	if self.is_hidden then
 		self:show()
-		self.is_hidden = false
 	else
 		self:hide()
-		self.is_hidden = true
 	end
 end
+
 ---sets keymaps for the input/output buffer
 ---@param input_keymaps fun(buffer)[]
 ---@param output_keymaps fun(buffer)[]
