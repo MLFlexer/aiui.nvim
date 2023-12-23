@@ -2,11 +2,11 @@
 
 ---@class ModelMapper
 ---@field private instance_table table<string, model_metadata>
----@field private interface_table table<string, ModelAPI>
+---@field private interface_table table<string, ModelClient>
 local ModelMapper = { interface_table = {}, instance_table = {} }
 
 ---@private
----@param model_interface ModelAPI
+---@param model_interface ModelClient
 function ModelMapper:add_model_interface(model_interface)
 	self.interface_table[model_interface.name] = model_interface
 end

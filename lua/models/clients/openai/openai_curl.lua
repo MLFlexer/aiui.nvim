@@ -2,7 +2,7 @@ local Job = require("plenary.job")
 
 ---@alias message { role: string, content: string }
 
----@class OpenaiCurl : ModelAPI
+---@class OpenaiCurl : ModelClient
 local OpenAIModel = {
 	name = "ollama_curl",
 	command = "curl",

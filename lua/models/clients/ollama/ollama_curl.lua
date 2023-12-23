@@ -1,6 +1,6 @@
 local Job = require("plenary.job")
 
----@class OllamaCurl : ModelAPI
+---@class OllamaCurl : ModelClient
 local OllamaModel = {
 	name = "ollama_curl",
 	command = "curl",

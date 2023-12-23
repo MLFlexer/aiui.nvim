@@ -1,6 +1,6 @@
 local Job = require("plenary.job")
 
----@class TestModel : ModelAPI
+---@class TestModel : ModelClient
 local TestModel = {
 	name = "test_model",
 	command = "echo",
