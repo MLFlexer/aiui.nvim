@@ -14,6 +14,11 @@
 
 local ModelCollection = { agents = {}, clients = {}, instances = {}, models = {} }
 
+---@param instance instance
+function ModelCollection:add_instance(instance)
+	table.insert(self.instances, instance)
+end
+
 ---@param instances instance_list
 function ModelCollection:add_instances(instances)
 	for _, instance in ipairs(instances) do
