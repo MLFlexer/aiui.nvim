@@ -3,37 +3,16 @@ local Job = require("plenary.job")
 ---@class TestClient : ModelClient
 local TestClient = {
 	name = "test_model",
-	command = "echo",
+	command = "THIS IS A TEST COMMAND",
 	args = {
-		"https://api.openai.com/v1/chat/completions",
-		"-H",
-		"Content-Type: application/json",
-		"-H",
-		"openai key",
-		"-d",
-		"json request body",
+		"THIS IS A TEST ARGUMENT",
 	},
 }
 
----@param api_key string
-function TestClient:set_api_key(api_key)
-	self.args[5] = "Authorization: Bearer " .. api_key
-end
-
----@param json string
----@param args string[]
+---@param message string[]
 ---@return string[]
-local function insert_request_body(json, args)
-	args[7] = json
-	return args
-end
-
----@param message string
----@param old_context string[]
----@return string[]
-function TestClient.context_handler(message, old_context)
-	table.insert(old_context, message)
-	return old_context
+function TestClient.context_handler(message, _)
+	return message
 end
 
 ---@param context string[]
@@ -48,33 +27,8 @@ end
 ---@param context_handler context_handler
 ---@return fun(job: Job, return_value: integer)
 local function on_exit_request(result_handler, error_handler, context_handler)
-	return function(job, return_val)
-		vim.schedule(function()
-			if return_val == 0 then
-				-- result_handler(job:result())
-				-- context_handler(job:result())
-
-				---@type {error: nil | string, choices: {message: message}} | nil
-				local response_table = vim.fn.json_decode(job:result())
-				if response_table == nil then
-					error_handler(job, return_val)
-					return
-				else
-					local response_content = vim.inspect(response_table)
-					context_handler(response_table.messages)
-					vim.print("THIS IS THE CONTENT")
-					vim.print(vim.inspect(response_table))
-					local content_lines = {}
-					for line in response_content:gmatch("[^\n]+") do
-						table.insert(content_lines, line)
-					end
-					result_handler(content_lines)
-				end
-			else
-				error_handler(job, return_val)
-			end
-		end)
-	end
+	error("This is not supposed to be called")
+	return function(job, return_val) end
 end
 
 ---Request response from model API
@@ -94,29 +48,28 @@ function TestClient:request(
 	error_handler,
 	context_handler
 )
-	local prompt = table.concat(request_msg, "\n")
-	local request_table = { model = model_name, messages = {} }
-	if has_empty_context(context) then
-		if string.len(system_msg) > 0 then
-			vim.print(vim.inspect(request_table))
-			table.insert(request_table.messages, { role = "system", content = system_msg })
-		end
-		table.insert(request_table.messages, { role = "user", content = prompt })
+	if request_msg[1] == "error" then
+		error("THIS IS AN ERROR")
 	else
-		request_table.messages = context
-		table.insert(request_table.messages, { role = "user", content = prompt })
+		local output = {}
+		if has_empty_context(context) then
+			if string.len(system_msg) > 0 then
+				table.insert(output, system_msg)
+			end
+			-- table.insert(output, request_msg)
+			for _, v in ipairs(request_msg) do
+				table.insert(output, v)
+			end
+		else
+			output = context
+			for _, v in ipairs(request_msg) do
+				table.insert(output, v)
+			end
+		end
+		context_handler(output)
+		result_handler(output)
+		return
 	end
-
-	local json_body = vim.json.encode(request_table)
-	if not json_body then
-		error("Could not encode table to json: " .. vim.inspect(request_table))
-	end
-	local args = insert_request_body(json_body, self.args)
-	Job:new({
-		command = self.command,
-		args = { json_body },
-		on_exit = on_exit_request(result_handler, error_handler, context_handler),
-	}):start()
 end
 
 return TestClient
