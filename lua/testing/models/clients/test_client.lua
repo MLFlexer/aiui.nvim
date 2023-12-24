@@ -1,7 +1,7 @@
 local Job = require("plenary.job")
 
----@class TestModel : ModelClient
-local TestModel = {
+---@class TestClient : ModelClient
+local TestClient = {
 	name = "test_model",
 	command = "echo",
 	args = {
@@ -16,7 +16,7 @@ local TestModel = {
 }
 
 ---@param api_key string
-function TestModel:set_api_key(api_key)
+function TestClient:set_api_key(api_key)
 	self.args[5] = "Authorization: Bearer " .. api_key
 end
 
@@ -31,7 +31,7 @@ end
 ---@param message string
 ---@param old_context string[]
 ---@return string[]
-function TestModel.context_handler(message, old_context)
+function TestClient.context_handler(message, old_context)
 	table.insert(old_context, message)
 	return old_context
 end
@@ -85,7 +85,15 @@ end
 ---@param result_handler result_handler
 ---@param error_handler error_handler
 ---@param context_handler context_handler
-function TestModel:request(model_name, request_msg, system_msg, context, result_handler, error_handler, context_handler)
+function TestClient:request(
+	model_name,
+	request_msg,
+	system_msg,
+	context,
+	result_handler,
+	error_handler,
+	context_handler
+)
 	local prompt = table.concat(request_msg, "\n")
 	local request_table = { model = model_name, messages = {} }
 	if has_empty_context(context) then
@@ -111,4 +119,4 @@ function TestModel:request(model_name, request_msg, system_msg, context, result_
 	}):start()
 end
 
-return TestModel
+return TestClient
