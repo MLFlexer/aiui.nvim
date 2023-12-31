@@ -199,6 +199,25 @@ function Chat:append_output_lines(lines, prefix_lines)
 	vim.api.nvim_buf_set_lines(self.output.buffer_handle, starting_line, -1, false, lines)
 end
 
+function Chat:save_current_chat()
+	local file_path = ModelCollection:get_instance_path(self.instance)
+	local time = os.time()
+	local formatted_time = os.date("%Y-%m-%d_%H:%M", time)
+
+	vim.api.nvim_buf_call(self.output.buffer_handle, function()
+		vim.api.nvim_command(string.format("silent write! ++p %s/%s.md", file_path, formatted_time))
+	end)
+
+	local instance_file = io.open(string.format("%s/%s.json", file_path, formatted_time), "w") -- or "a" depending on your requirement
+
+	if instance_file then
+		instance_file:write(vim.json.encode(self.instance))
+		instance_file:close()
+	else
+		error("Could not write save chat instance to " .. instance_file)
+	end
+end
+
 vim.api.nvim_create_user_command("AN", function()
 	local test_model = require("testing.models.clients.test_client")
 	local ollama_model = require("models.clients.ollama.ollama_curl")
@@ -220,6 +239,10 @@ end, {})
 
 vim.api.nvim_create_user_command("AT", function()
 	Chat:toggle()
+end, {})
+
+vim.api.nvim_create_user_command("AW", function()
+	Chat:save_current_chat()
 end, {})
 
 return Chat
