@@ -11,8 +11,8 @@
 ---@field models model_map
 ---@field agents agent_map
 ---@field instances instance_list
-
-local ModelCollection = { agents = {}, clients = {}, instances = {}, models = {} }
+---@field chat_dir string
+local ModelCollection = { agents = {}, instances = {}, models = {}, chat_dir = vim.fn.expand("$HOME/.aiui/chats") }
 
 ---@param instance instance
 function ModelCollection:add_instance(instance)
@@ -58,6 +58,16 @@ function ModelCollection:request_response(instance, msg_lines, result_handler, e
 			instance.context = model.client.context_handler(new_context, instance.context)
 		end
 	)
+end
+
+---@param instance instance
+---@return string
+function ModelCollection:get_instance_path(instance)
+	local model = self.models[instance.model]
+	local client = model.client
+	local path = string.format("%s/%s/%s/%s", self.chat_dir, client.name, model.name, instance.name)
+	local underscore_path = string.gsub(path, " ", "_")
+	return underscore_path
 end
 
 return ModelCollection
