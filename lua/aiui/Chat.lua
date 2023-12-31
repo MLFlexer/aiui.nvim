@@ -200,21 +200,59 @@ function Chat:append_output_lines(lines, prefix_lines)
 end
 
 function Chat:save_current_chat()
-	local file_path = ModelCollection:get_instance_path(self.instance)
-	local time = os.time()
-	local formatted_time = os.date("%Y-%m-%d_%H:%M", time)
+	if self.output.is_empty then
+		return
+	end
+	if self.instance.file == nil then
+		local file_path = ModelCollection:get_instance_path(self.instance)
+		local time = os.time()
+		local formatted_time = os.date("%Y-%m-%d_%H:%M", time)
+		self.instance.file = string.format("%s/%s", file_path, formatted_time)
+	end
 
 	vim.api.nvim_buf_call(self.output.buffer_handle, function()
-		vim.api.nvim_command(string.format("silent write! ++p %s/%s.md", file_path, formatted_time))
+		vim.api.nvim_command(string.format("silent write! ++p %s.md", self.instance.file))
 	end)
 
-	local instance_file = io.open(string.format("%s/%s.json", file_path, formatted_time), "w") -- or "a" depending on your requirement
+	local instance_file = io.open(self.instance.file .. ".json", "w")
 
 	if instance_file then
 		instance_file:write(vim.json.encode(self.instance))
 		instance_file:close()
 	else
 		error("Could not write save chat instance to " .. instance_file)
+	end
+end
+
+---Loads a saved chat from a specified file
+---@param instance_path string
+function Chat:load_from_file(instance_path)
+	local instance_file = io.open(instance_path .. ".json", "r")
+	local json_str = nil
+
+	if instance_file == nil then
+		error(instance_path .. ".json not found or unable to open.")
+	end
+
+	json_str = instance_file:read("*a")
+	instance_file:close()
+	self:save_current_chat()
+
+	local instance = vim.json.decode(json_str, { object = true, array = true })
+	if instance == nil then
+		error("Loaded instance was nil")
+	end
+
+	ModelCollection:add_instance(instance)
+	self.instance = instance
+
+	local file_content = vim.fn.readfile(instance_path .. ".md")
+	vim.api.nvim_buf_set_lines(self.input.buffer_handle, 0, -1, false, {})
+	vim.api.nvim_buf_set_lines(self.output.buffer_handle, 0, -1, false, file_content)
+	if #file_content == 0 then
+		self.output.is_empty = true
+	else
+		self.output.is_empty = false
 	end
 end
 
@@ -243,6 +281,10 @@ end, {})
 
 vim.api.nvim_create_user_command("AW", function()
 	Chat:save_current_chat()
+end, {})
+
+vim.api.nvim_create_user_command("AL", function()
+	Chat:load_from_file("/home/mlflexer/.aiui/chats/test_model/testing_model/testing_instance/2023-12-31_13:32")
 end, {})
 
 return Chat

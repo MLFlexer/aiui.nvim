@@ -4,7 +4,7 @@
 ---key: model name, value: {name: string, client: ModelClient}
 ---@alias model_map table<string, {name: string, client: ModelClient}>
 
----@alias instance {name: string, model: string, context: any[], agent: string}
+---@alias instance {name: string, model: string, context: any[], agent: string, file: string | nil}
 ---@alias instance_list instance[]
 
 ---@class ModelCollection
