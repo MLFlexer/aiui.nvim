@@ -200,15 +200,21 @@ function Chat:append_output_lines(lines, prefix_lines)
 end
 
 function Chat:save_current_chat()
-	local file_path = ModelCollection:get_instance_path(self.instance)
-	local time = os.time()
-	local formatted_time = os.date("%Y-%m-%d_%H:%M", time)
+	if self.output.is_empty then
+		return
+	end
+	if self.instance.file == nil then
+		local file_path = ModelCollection:get_instance_path(self.instance)
+		local time = os.time()
+		local formatted_time = os.date("%Y-%m-%d_%H:%M", time)
+		self.instance.file = string.format("%s/%s", file_path, formatted_time)
+	end
 
 	vim.api.nvim_buf_call(self.output.buffer_handle, function()
-		vim.api.nvim_command(string.format("silent write! ++p %s/%s.md", file_path, formatted_time))
+		vim.api.nvim_command(string.format("silent write! ++p %s.md", self.instance.file))
 	end)
 
-	local instance_file = io.open(string.format("%s/%s.json", file_path, formatted_time), "w") -- or "a" depending on your requirement
+	local instance_file = io.open(self.instance.file .. ".json", "w")
 
 	if instance_file then
 		instance_file:write(vim.json.encode(self.instance))
