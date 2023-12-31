@@ -145,6 +145,7 @@ function Chat:apply_autocmd()
 		buffer = self.input.buffer_handle,
 		callback = function(ev)
 			vim.print(string.format("input! event fired: %s", vim.inspect(ev)))
+			self:save_current_chat()
 			self:hide()
 		end,
 	})
@@ -152,6 +153,7 @@ function Chat:apply_autocmd()
 		buffer = self.output.buffer_handle,
 		callback = function(ev)
 			vim.print(string.format("output! event fired: %s", vim.inspect(ev)))
+			self:save_current_chat()
 			self:hide()
 		end,
 	})
