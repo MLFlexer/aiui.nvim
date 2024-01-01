@@ -45,6 +45,16 @@ function ModelCollection:add_models(models)
 	end
 end
 
+---returns a list of model names
+---@return string[]
+function ModelCollection:get_models()
+	local models = {}
+	for model, _ in pairs(self.models) do
+		table.insert(models, model)
+	end
+	return models
+end
+
 ---Request response to msg_lines for an instance
 ---@param instance instance
 ---@param msg_lines string[]
