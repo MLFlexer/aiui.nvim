@@ -282,19 +282,38 @@ function Chat:load_from_file(instance_path)
 	ModelCollection:add_instance(instance)
 end
 
+local function decrypt_file_with_gpg(file_path)
+	local command = string.format("gpg --decrypt %s", file_path)
+	local handle = io.popen(command)
+	local decrypted_text = handle:read("*a")
+	handle:close()
+	decrypted_text = decrypted_text:gsub("\n$", "")
+	return decrypted_text
+end
+
 vim.api.nvim_create_user_command("AN", function()
 	local test_model = require("testing.models.clients.test_client")
 	local ollama_model = require("models.clients.ollama.ollama_curl")
+	local mistral_client = require("models.clients.mistral.mistral_curl")
+	local openai_client = require("models.clients.openai.openai_curl")
+	mistral_client:set_api_key(decrypt_file_with_gpg("/home/mlflexer/.secrets/mistral.txt.gpg"))
+	openai_client:set_api_key(decrypt_file_with_gpg("/home/mlflexer/.secrets/open_ai.txt.gpg"))
 	ModelCollection:add_models({
 		testing_model = { name = "testing_model", client = test_model },
 		orca_mini = { name = "orca-mini", client = ollama_model },
+		mistral_tiny = { name = "mistral-tiny", client = mistral_client },
+		gpt3 = { name = "gpt-3.5-turbo-1106", client = openai_client },
 	})
 	ModelCollection:add_agents({
+		mistral_agent = "You are a chatbot, answer short and concise.",
+		gpt3_agent = "You are gpt3, a chatbot, answer short and concise.",
 		testing_agent = "testing agent system prompt",
 		random_agent = "always respond with a number between 0 and 10.",
 	})
-	local instance = { name = "testing instance", model = "testing_model", context = {}, agent = "testing_agent" }
-	-- instance = { name = "ollama instance", model = "orca_mini", context = {}, agent = "random_agent" }
+	local instance = { name = "Mistral Tiny", model = "mistral_tiny", context = {}, agent = "mistral_agent" }
+	instance = { name = "testing instance", model = "testing_model", context = {}, agent = "testing_agent" }
+	instance = { name = "ollama instance", model = "orca_mini", context = {}, agent = "random_agent" }
+	instance = { name = "gpt3 instance", model = "gpt3", context = {}, agent = "gpt3_agent" }
 	ModelCollection:add_instance(instance)
 	Chat:new(instance)
 	Chat:apply_default_keymaps()

@@ -70,7 +70,7 @@ function ModelCollection:request_response(instance, msg_lines, result_handler, e
 		result_handler,
 		error_handler,
 		function(new_context)
-			instance.context = model.client.context_handler(new_context, instance.context)
+			instance.context = new_context
 		end
 	)
 end

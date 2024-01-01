@@ -2,31 +2,34 @@ local Job = require("plenary.job")
 
 ---@alias message { role: string, content: string }
 
----@class OpenaiCurl : ModelClient
-local OpenAIModel = {
-	name = "openai_curl",
+---@class MistralCurl : ModelClient
+local MistralModel = {
+	name = "mistral_curl",
 	command = "curl",
 	args = {
-		"https://api.openai.com/v1/chat/completions",
+		"https://api.mistral.ai/v1/chat/completions",
 		"-H",
 		"Content-Type: application/json",
 		"-H",
-		"openai key",
+		"Accept: application/json",
+		"-H",
+		"mistral api key",
 		"-d",
 		"json request body",
 	},
 }
 
 ---@param api_key string
-function OpenAIModel:set_api_key(api_key)
-	self.args[5] = "Authorization: Bearer " .. api_key
+function MistralModel:set_api_key(api_key)
+	print("this is the key: " .. api_key)
+	self.args[7] = "Authorization: Bearer " .. api_key
 end
 
 ---@param json string
 ---@param args string[]
 ---@return string[]
 local function insert_request_body(json, args)
-	args[7] = json
+	args[9] = json
 	return args
 end
 
@@ -52,6 +55,8 @@ local function on_exit_request(result_handler, error_handler, context_handler, c
 					error_handler(job, return_val)
 					return
 				elseif response_table.error == nil then
+					vim.print("this is the response table")
+					vim.print(vim.inspect(response_table))
 					local response_content = response_table.choices[1].message.content
 					local content_lines = {}
 					for line in response_content:gmatch("[^\n]+") do
@@ -78,7 +83,7 @@ end
 ---@param result_handler result_handler
 ---@param error_handler error_handler
 ---@param context_handler context_handler
-function OpenAIModel:request(
+function MistralModel:request(
 	model_name,
 	request_msg,
 	system_msg,
@@ -104,6 +109,7 @@ function OpenAIModel:request(
 		error("Could not encode table to json: " .. vim.inspect(request_table))
 	end
 	local args = insert_request_body(json_body, self.args)
+	vim.print(vim.inspect(args))
 	Job:new({
 		command = self.command,
 		args = args,
@@ -111,4 +117,4 @@ function OpenAIModel:request(
 	}):start()
 end
 
-return OpenAIModel
+return MistralModel
