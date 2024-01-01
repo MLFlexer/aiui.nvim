@@ -282,6 +282,15 @@ function Chat:load_from_file(instance_path)
 	ModelCollection:add_instance(instance)
 end
 
+local function decrypt_file_with_gpg(file_path)
+	local command = string.format("gpg --decrypt %s", file_path)
+	local handle = io.popen(command)
+	local decrypted_text = handle:read("*a")
+	handle:close()
+	decrypted_text = decrypted_text:gsub("\n$", "")
+	return decrypted_text
+end
+
 vim.api.nvim_create_user_command("AN", function()
 	local test_model = require("testing.models.clients.test_client")
 	local ollama_model = require("models.clients.ollama.ollama_curl")
