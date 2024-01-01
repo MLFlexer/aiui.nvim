@@ -71,6 +71,11 @@ function Chat:show()
 		return
 	end
 	self.is_hidden = false
+
+	local output_height = math.floor(vim.o.lines * 0.8)
+	self.output.window_opts.height = output_height
+	self.input.window_opts.height = vim.o.lines - output_height - 4
+
 	-- output has to be shown before input, otherwise the placement will be off
 	self.output.window_handle = vim.api.nvim_open_win(self.output.buffer_handle, false, self.output.window_opts)
 	self.input.window_handle = vim.api.nvim_open_win(self.input.buffer_handle, true, self.input.window_opts)
