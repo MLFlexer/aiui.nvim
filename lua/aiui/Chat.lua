@@ -234,6 +234,31 @@ function Chat:save_current_chat()
 	end
 end
 
+---changes the instance
+---@param instance instance
+function Chat:change_instance(instance)
+	self.instance = instance
+	local file_content = {}
+	if instance.file ~= nil then
+		file_content = vim.fn.readfile(instance.file .. ".md")
+	end
+	vim.api.nvim_buf_set_lines(self.input.buffer_handle, 0, -1, false, {})
+	vim.api.nvim_buf_set_lines(self.output.buffer_handle, 0, -1, false, file_content)
+	if #file_content == 0 then
+		self.output.is_empty = true
+	else
+		self.output.is_empty = false
+	end
+
+	self.output.window_opts.title = instance.name
+	-- FIX: Why does the placement only work with 2 * toggle and not nvim_win_set_config???
+
+	-- vim.api.nvim_win_set_config(self.output.window_handle, self.output.window_opts)
+	-- vim.api.nvim_win_set_config(self.input.window_handle, self.input.window_opts)
+	self:toggle()
+	self:toggle()
+end
+
 ---Loads a saved chat from a specified file
 ---@param instance_path string
 function Chat:load_from_file(instance_path)
@@ -253,17 +278,8 @@ function Chat:load_from_file(instance_path)
 		error("Loaded instance was nil")
 	end
 
+	self:change_instance(instance)
 	ModelCollection:add_instance(instance)
-	self.instance = instance
-
-	local file_content = vim.fn.readfile(instance_path .. ".md")
-	vim.api.nvim_buf_set_lines(self.input.buffer_handle, 0, -1, false, {})
-	vim.api.nvim_buf_set_lines(self.output.buffer_handle, 0, -1, false, file_content)
-	if #file_content == 0 then
-		self.output.is_empty = true
-	else
-		self.output.is_empty = false
-	end
 end
 
 vim.api.nvim_create_user_command("AN", function()
@@ -291,6 +307,11 @@ end, {})
 
 vim.api.nvim_create_user_command("AW", function()
 	Chat:save_current_chat()
+end, {})
+
+local Picker = require("aiui.ModelPicker")
+vim.api.nvim_create_user_command("AP", function()
+	Picker:model_picker(Chat)
 end, {})
 
 vim.api.nvim_create_user_command("AL", function()
