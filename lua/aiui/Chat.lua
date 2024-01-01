@@ -236,6 +236,7 @@ end
 ---changes the instance
 ---@param instance instance
 function Chat:change_instance(instance)
+	self:save_current_chat()
 	self.instance = instance
 	local file_content = {}
 	if instance.file ~= nil then
@@ -271,7 +272,6 @@ function Chat:load_from_file(instance_path)
 
 	json_str = instance_file:read("*a")
 	instance_file:close()
-	self:save_current_chat()
 
 	local instance = vim.json.decode(json_str, { object = true, array = true })
 	if instance == nil then
