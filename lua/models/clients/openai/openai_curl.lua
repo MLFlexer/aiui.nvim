@@ -4,7 +4,7 @@ local Job = require("plenary.job")
 
 ---@class OpenaiCurl : ModelClient
 local OpenAIModel = {
-	name = "ollama_curl",
+	name = "openai_curl",
 	command = "curl",
 	args = {
 		"https://api.openai.com/v1/chat/completions",
@@ -30,14 +30,6 @@ local function insert_request_body(json, args)
 	return args
 end
 
----@param message message
----@param old_context message[]
----@return message[]
-function OpenAIModel.context_handler(message, old_context)
-	table.insert(old_context, message)
-	return old_context
-end
-
 ---@param context message[]
 ---@return boolean
 local function has_empty_context(context)
@@ -48,8 +40,9 @@ end
 ---@param result_handler result_handler
 ---@param error_handler error_handler
 ---@param context_handler context_handler
+---@param context message[]
 ---@return fun(job: Job, return_value: integer)
-local function on_exit_request(result_handler, error_handler, context_handler)
+local function on_exit_request(result_handler, error_handler, context_handler, context)
 	return function(job, return_val)
 		vim.schedule(function()
 			if return_val == 0 then
@@ -65,7 +58,8 @@ local function on_exit_request(result_handler, error_handler, context_handler)
 						table.insert(content_lines, line)
 					end
 					result_handler(content_lines)
-					context_handler(response_table.choices[1].message)
+					table.insert(context, response_table.choices[1].message)
+					context_handler(context)
 				else
 					error_handler(job, return_val)
 				end
@@ -113,7 +107,7 @@ function OpenAIModel:request(
 	Job:new({
 		command = self.command,
 		args = args,
-		on_exit = on_exit_request(result_handler, error_handler, context_handler),
+		on_exit = on_exit_request(result_handler, error_handler, context_handler, request_table.messages),
 	}):start()
 end
 

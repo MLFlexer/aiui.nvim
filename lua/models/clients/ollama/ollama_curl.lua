@@ -97,10 +97,4 @@ function OllamaModel:request(
 	}):start()
 end
 
----@param new_context number[]
----@return number[]
-function OllamaModel.context_handler(new_context, _)
-	return new_context
-end
-
 return OllamaModel
