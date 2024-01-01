@@ -12,7 +12,12 @@
 ---@field agents agent_map
 ---@field instances instance_list
 ---@field chat_dir string
-local ModelCollection = { agents = {}, instances = {}, models = {}, chat_dir = vim.fn.expand("$HOME/.aiui/chats") }
+local ModelCollection = {
+	agents = { default_chat = "You are a coding chatbot, answer short and concise." },
+	instances = {},
+	models = {},
+	chat_dir = vim.fn.expand("$HOME/.aiui/chats"),
+}
 
 ---@param instance instance
 function ModelCollection:add_instance(instance)
