@@ -329,8 +329,12 @@ vim.api.nvim_create_user_command("AW", function()
 end, {})
 
 local Picker = require("aiui.ModelPicker")
-vim.api.nvim_create_user_command("AP", function()
+vim.api.nvim_create_user_command("AMP", function()
 	Picker:model_picker(Chat)
+end, {})
+
+vim.api.nvim_create_user_command("AIP", function()
+	Picker:instance_picker(Chat)
 end, {})
 
 vim.api.nvim_create_user_command("AL", function()
