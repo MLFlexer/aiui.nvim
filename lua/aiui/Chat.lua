@@ -22,6 +22,7 @@ function Chat:new(start_instance)
 	local output_height = math.floor(vim.o.lines * 0.8)
 	local output_window_opts = {
 		relative = "win",
+		anchor = "NE",
 		row = 0,
 		col = vim.o.columns,
 		width = width,
@@ -44,6 +45,8 @@ function Chat:new(start_instance)
 	local input_window_opts = {
 		relative = "win",
 		row = output_height + 1,
+		anchor = "SE",
+		row = vim.o.lines,
 		col = vim.o.columns,
 		width = width,
 		height = vim.o.lines - output_height - 4,
