@@ -44,7 +44,6 @@ function Chat:new(start_instance)
 	}
 	local input_window_opts = {
 		relative = "win",
-		row = output_height + 1,
 		anchor = "SE",
 		row = vim.o.lines,
 		col = vim.o.columns,
@@ -251,6 +250,7 @@ function Chat:change_instance(instance)
 	end
 
 	self.output.window_opts.title = instance.name
+
 	-- FIX: Why does the placement only work with 2 * toggle and not nvim_win_set_config???
 
 	-- vim.api.nvim_win_set_config(self.output.window_handle, self.output.window_opts)
