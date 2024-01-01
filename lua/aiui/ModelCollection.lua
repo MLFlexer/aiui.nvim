@@ -12,7 +12,12 @@
 ---@field agents agent_map
 ---@field instances instance_list
 ---@field chat_dir string
-local ModelCollection = { agents = {}, instances = {}, models = {}, chat_dir = vim.fn.expand("$HOME/.aiui/chats") }
+local ModelCollection = {
+	agents = { default_chat = "You are a coding chatbot, answer short and concise." },
+	instances = {},
+	models = {},
+	chat_dir = vim.fn.expand("$HOME/.aiui/chats"),
+}
 
 ---@param instance instance
 function ModelCollection:add_instance(instance)
@@ -38,6 +43,16 @@ function ModelCollection:add_models(models)
 	for name, model_client in pairs(models) do
 		self.models[name] = model_client
 	end
+end
+
+---returns a list of model names
+---@return string[]
+function ModelCollection:get_models()
+	local models = {}
+	for model, _ in pairs(self.models) do
+		table.insert(models, model)
+	end
+	return models
 end
 
 ---Request response to msg_lines for an instance
