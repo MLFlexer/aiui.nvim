@@ -52,4 +52,38 @@ function ModelPicker:model_picker(chat, opts)
 		:find()
 end
 
+---Spawn fuzzy finder with to pick instances
+---@param chat Chat
+---@param opts any
+function ModelPicker:instance_picker(chat, opts)
+	opts = opts or {}
+	pickers
+		.new(opts, {
+			prompt_title = "Pick a chat to continue",
+			finder = finders.new_table({
+				results = ModelCollection.instances,
+				entry_maker = function(instance)
+					return {
+						value = instance,
+						display = instance.name,
+						ordinal = instance.name,
+					}
+				end,
+			}),
+			sorter = conf.generic_sorter(opts),
+			attach_mappings = function(prompt_bufnr, _)
+				actions.select_default:replace(function()
+					actions.close(prompt_bufnr)
+					local selection = action_state.get_selected_entry()
+					vim.schedule(function()
+						local instance = selection.value
+						chat:change_instance(instance)
+					end)
+				end)
+				return true
+			end,
+		})
+		:find()
+end
+
 return ModelPicker
