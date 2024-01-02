@@ -339,6 +339,10 @@ vim.api.nvim_create_user_command("AIP", function()
 	Picker:instance_picker(Chat)
 end, {})
 
+vim.api.nvim_create_user_command("ASP", function()
+	Picker:saved_picker(Chat)
+end, {})
+
 vim.api.nvim_create_user_command("AL", function()
 	Chat:load_from_file("/home/mlflexer/.aiui/chats/test_model/testing_model/testing_instance/2023-12-31_13:32")
 end, {})

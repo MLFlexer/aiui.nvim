@@ -109,4 +109,34 @@ function ModelPicker:instance_picker(chat, opts)
 		:find()
 end
 
+---Spawn fuzzy finder with to pick saved chats
+---@param chat Chat
+---@param opts any
+function ModelPicker:saved_picker(chat, opts)
+	opts = opts or {}
+	local find_command = { "fd", "--type", "f", "--color", "never", "-e", "md", ".", ModelCollection.chat_dir }
+	pickers
+		.new(opts, {
+			prompt_title = "Pick a saved chat to continue",
+			finder = finders.new_oneshot_job(find_command, opts),
+			previewer = conf.file_previewer(opts),
+			sorter = conf.file_sorter(opts),
+			attach_mappings = function(prompt_bufnr, _)
+				actions.select_default:replace(function()
+					actions.close(prompt_bufnr)
+					local selection = action_state.get_selected_entry()
+					vim.schedule(function()
+						vim.print(vim.inspect(selection))
+						vim.print(vim.inspect(selection.value))
+
+						local path = selection.value:gsub("%.md$", "")
+						chat:load_from_file(path)
+					end)
+				end)
+				return true
+			end,
+		})
+		:find()
+end
+
 return ModelPicker
