@@ -311,12 +311,12 @@ vim.api.nvim_create_user_command("AN", function()
 		random_agent = "always respond with a number between 0 and 10.",
 	})
 	local instance = { name = "Mistral Tiny", model = "mistral_tiny", context = {}, agent = "mistral_agent" }
-	instance = { name = "ollama instance", model = "orca_mini", context = {}, agent = "random_agent" }
-	instance = { name = "gpt3 instance", model = "gpt3", context = {}, agent = "gpt3_agent" }
-	instance = { name = "testing instance2", model = "testing_model", context = {}, agent = "testing_agent" }
-	ModelCollection:add_instance(instance)
+	-- instance = { name = "ollama instance", model = "orca_mini", context = {}, agent = "random_agent" }
+	-- instance = { name = "gpt3 instance", model = "gpt3", context = {}, agent = "gpt3_agent" }
+	-- instance = { name = "testing instance2", model = "testing_model", context = {}, agent = "testing_agent" }
+	-- -- ModelCollection:add_instance(instance)
 	instance = { name = "testing instance", model = "testing_model", context = {}, agent = "testing_agent" }
-	ModelCollection:add_instance(instance)
+	-- ModelCollection:add_instance(instance)
 	Chat:new(instance)
 	Chat:apply_default_keymaps()
 	Chat:apply_autocmd()
