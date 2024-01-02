@@ -75,6 +75,24 @@ function ModelCollection:request_response(instance, msg_lines, result_handler, e
 	)
 end
 
+---Request response to msg_lines for an instance
+---@param instance instance
+---@param msg_lines string[]
+---@param chunk_handler chunk_handler
+function ModelCollection:request_streamed_response(instance, msg_lines, chunk_handler)
+	local model = self.models[instance.model]
+	model.client:stream_request(
+		model.name,
+		msg_lines,
+		self.agents[instance.agent],
+		instance.context,
+		chunk_handler,
+		function(new_context)
+			instance.context = new_context
+		end
+	)
+end
+
 ---@param instance instance
 ---@return string
 function ModelCollection:get_instance_path(instance)
