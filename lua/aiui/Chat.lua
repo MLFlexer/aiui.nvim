@@ -217,7 +217,7 @@ function Chat:append_output_chunk(chunk)
 	else
 		vim.api.nvim_buf_set_text(self.output.buffer_handle, row, col, row, col, lines)
 	end
-	vim.api.nvim_win_set_cursor(self.output.window_handle, { row, col })
+	vim.api.nvim_win_set_cursor(self.output.window_handle, { row + 1, col })
 end
 
 function Chat:get_input_lines()
