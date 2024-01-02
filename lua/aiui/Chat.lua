@@ -186,6 +186,40 @@ function Chat:request_model()
 	ModelCollection:request_response(self.instance, prompt, result_handler, error_handler)
 end
 
+function Chat:request_streamed_response()
+	-- FIX: change this function
+
+	local prompt = self:get_input_lines()
+	if #prompt == 0 then
+		return
+	end
+	self:append_output_lines(prompt, { "# You:" })
+	vim.api.nvim_buf_set_lines(Chat.input.buffer_handle, 0, -1, false, {})
+	local function chunk_handler(chunk)
+		self:append_output_chunk(chunk)
+	end
+
+	vim.api.nvim_buf_set_lines(self.output.buffer_handle, -1, -1, false, { "# Them:", "" })
+	ModelCollection:request_streamed_response(self.instance, prompt, chunk_handler)
+end
+
+---Append text to output buffer
+---@param chunk string
+function Chat:append_output_chunk(chunk)
+	local lines = vim.split(chunk, "\n")
+	local row = vim.api.nvim_buf_line_count(self.output.buffer_handle) - 1
+	local current_line = vim.api.nvim_buf_get_lines(self.output.buffer_handle, row, row + 1, false)
+	local col = 0
+
+	if #current_line > 0 then
+		col = string.len(current_line[1])
+		vim.api.nvim_buf_set_text(self.output.buffer_handle, row, col, row, col, lines)
+	else
+		vim.api.nvim_buf_set_text(self.output.buffer_handle, row, col, row, col, lines)
+	end
+	vim.api.nvim_win_set_cursor(self.output.window_handle, { row, col })
+end
+
 function Chat:get_input_lines()
 	return vim.api.nvim_buf_get_lines(self.input.buffer_handle, 0, -1, false)
 end
