@@ -1,7 +1,5 @@
 local Job = require("plenary.job")
 
----@alias message { role: string, content: string }
-
 ---@class MistralCurl : ModelClient
 local MistralModel = {
 	name = "mistral_curl",
@@ -21,7 +19,6 @@ local MistralModel = {
 
 ---@param api_key string
 function MistralModel:set_api_key(api_key)
-	print("this is the key: " .. api_key)
 	self.args[7] = "Authorization: Bearer " .. api_key
 end
 
@@ -55,8 +52,6 @@ local function on_exit_request(result_handler, error_handler, context_handler, c
 					error_handler(job, return_val)
 					return
 				elseif response_table.error == nil then
-					vim.print("this is the response table")
-					vim.print(vim.inspect(response_table))
 					local response_content = response_table.choices[1].message.content
 					local content_lines = {}
 					for line in response_content:gmatch("[^\n]+") do
@@ -109,7 +104,6 @@ function MistralModel:request(
 		error("Could not encode table to json: " .. vim.inspect(request_table))
 	end
 	local args = insert_request_body(json_body, self.args)
-	vim.print(vim.inspect(args))
 	Job:new({
 		command = self.command,
 		args = args,

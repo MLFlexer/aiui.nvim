@@ -1,5 +1,3 @@
----@alias Job any
-
 ---@alias error_handler fun(job: Job, return_value: integer)
 ---@alias context_handler fun(context: any)
 ---@alias result_handler fun(answer_lines: string[])
@@ -12,3 +10,22 @@
 ---@field context_handler fun(new_context: any, old_context: any): any
 ---@field request fun(self: ModelClient, model_name: string, request_msg: string[], system_msg: string, context: any, result_handler: result_handler, error_handler: error_handler, context_handler: context_handler)
 ---@field stream_request fun(self: ModelClient, model_name: string, request_msg: string[], system_msg: string, context: any, chunk_handler: chunk_handler, context_handler: context_handler)
+
+---from plenary
+---@class Job
+---@field command string Command to run
+---@field args? string[] List of arguments to pass
+---@field cwd? string Working directory for job
+---@field env? table<string, string>|string[] Environment looking like: { ['VAR'] = 'VALUE' } or { 'VAR=VALUE' }
+---@field interactive? boolean
+---@field detached? boolean Spawn the child in a detached state making it a process group leader
+---@field skip_validation? boolean Skip validating the arguments
+---@field enable_handlers? boolean If set to false, disables all callbacks associated with output (default: true)
+---@field enabled_recording? boolean
+---@field on_start? fun()
+---@field on_stdout? fun(error: string, data: string, self?: Job)
+---@field on_stderr? fun(error: string, data: string, self?: Job)
+---@field on_exit? fun(self: Job, code: number, signal: number)
+---@field maximum_results? number Stop processing results after this number
+---@field writer? Job|table|string Job that writes to stdin of this job.
+---@field result fun(self)
