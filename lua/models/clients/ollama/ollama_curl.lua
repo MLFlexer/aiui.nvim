@@ -97,4 +97,56 @@ function OllamaModel:request(
 	}):start()
 end
 
+---Callback function for when there is stdout, when streaming
+---@param chunk_handler chunk_handler
+---@param context_handler context_handler
+---@return fun(err: string, chunk: string)
+local function on_stdout_stream(chunk_handler, context_handler)
+	return function(_, chunk)
+		vim.schedule(function()
+			local chunk_table = vim.json.decode(chunk, { true, true })
+			if chunk_table == nil then
+				error("Empty json object")
+			end
+
+			if chunk_table.response then
+				chunk_handler(chunk_table.response)
+			end
+			if chunk_table.context then
+				context_handler(chunk_table.context)
+			end
+		end)
+	end
+end
+
+---Request streamed response from model API
+---@param model_name string
+---@param request_msg string[]
+---@param system_msg string
+---@param context message[]
+---@param chunk_handler chunk_handler
+---@param context_handler context_handler
+function OllamaModel:stream_request(model_name, request_msg, system_msg, context, chunk_handler, context_handler)
+	local prompt = table.concat(request_msg, "\n")
+	local request_table = { model = model_name, prompt = prompt, stream = true }
+	if has_empty_context(context) then
+		if string.len(system_msg) > 0 then
+			request_table.system = system_msg
+		end
+	else
+		request_table.context = context
+	end
+
+	local json_body = vim.json.encode(request_table)
+	if not json_body then
+		error("Could not encode table to json: " .. vim.inspect(request_table))
+	end
+	local args = insert_request_body(json_body, self.args)
+	Job:new({
+		command = self.command,
+		args = args,
+		on_stdout = on_stdout_stream(chunk_handler, context_handler),
+	}):start()
+end
+
 return OllamaModel
