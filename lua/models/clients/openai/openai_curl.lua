@@ -111,4 +111,104 @@ function OpenAIModel:request(
 	}):start()
 end
 
+---Callback function for when there is stdout, when streaming
+---@param chunk_handler chunk_handler
+---@return fun(err: string, chunk: string)
+local function on_stdout_stream(chunk_handler)
+	return function(_, chunk)
+		if chunk == nil or chunk == "" then
+			return
+		elseif chunk == "data: [DONE]" then
+			return
+		else
+			vim.schedule(function()
+				local json_chunk = chunk:gsub("data: ", "")
+				local chunk_table = vim.json.decode(json_chunk, { true, true })
+				if chunk_table == nil then
+					error("Empty json object")
+				end
+
+				if chunk_table.choices[1].delta == nil then
+					return
+				end
+				if chunk_table.choices[1].delta.content then
+					local content = chunk_table.choices[1].delta.content
+					chunk_handler(content)
+				elseif chunk_table.choices[1].delta.role ~= nil then
+					return
+				end
+			end)
+		end
+	end
+end
+
+local function exstract_message(lines)
+	local message = { role = nil, content_list = {} }
+	for _, entry in ipairs(lines) do
+		if entry ~= "" and entry ~= "data: [DONE]" then
+			local json_chunk = entry:gsub("^data: ", "")
+			local chunk_table = vim.json.decode(json_chunk, { luanil = { true, true } })
+			if chunk_table == nil then
+				error("Empty json object")
+			end
+
+			if chunk_table.choices[1].delta.content then
+				local content = chunk_table.choices[1].delta.content
+				table.insert(message.content_list, content)
+			end
+			if chunk_table.choices[1].delta.role ~= nil then
+				message.role = chunk_table.choices[1].delta.role
+			end
+		end
+	end
+	return { content = table.concat(message.content_list), role = message.role }
+end
+
+---Callback function for when a streamed job exits
+---@param context_handler context_handler
+---@param context message[]
+---@return fun(job: Job, return_value: integer)
+local function on_exit_stream(context_handler, context)
+	return function(job, return_val)
+		if return_val == 0 then
+			local message = exstract_message(job:result())
+			table.insert(context, message)
+			context_handler(context)
+		end
+	end
+end
+
+---Request streamed response from model API
+---@param model_name string
+---@param request_msg string[]
+---@param system_msg string
+---@param context message[]
+---@param chunk_handler chunk_handler
+---@param context_handler context_handler
+function OpenAIModel:stream_request(model_name, request_msg, system_msg, context, chunk_handler, context_handler)
+	local prompt = table.concat(request_msg, "\n")
+	local request_table = { model = model_name, messages = {}, stream = true }
+	if has_empty_context(context) then
+		if string.len(system_msg) > 0 then
+			table.insert(request_table.messages, { role = "system", content = system_msg })
+		end
+		table.insert(request_table.messages, { role = "user", content = prompt })
+	else
+		request_table.messages = context
+		table.insert(request_table.messages, { role = "user", content = prompt })
+	end
+
+	local json_body = vim.json.encode(request_table)
+	if not json_body then
+		error("Could not encode table to json: " .. vim.inspect(request_table))
+	end
+	local args = insert_request_body(json_body, self.args)
+	Job:new({
+		command = self.command,
+		args = args,
+		on_stdout = on_stdout_stream(chunk_handler),
+		on_exit = on_exit_stream(context_handler, request_table.messages),
+	}):start()
+end
+
 return OpenAIModel
