@@ -54,7 +54,7 @@ function Chat:new(start_instance)
 		title = "INPUT",
 		title_pos = "center",
 	}
-	local input_buffer = vim.api.nvim_create_buf(false, false)
+	local input_buffer = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_option(input_buffer, "filetype", "markdown")
 	self.input = {
 		window_opts = input_window_opts,
