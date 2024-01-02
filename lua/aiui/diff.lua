@@ -44,4 +44,13 @@ function diff.get_visual_lines()
 	return result
 end
 
+---@param before string[]
+---@param after string[]
+---@return integer[][]
+function diff.get_diff_indices(before, after)
+	local before_joined = table.concat(before, "\n")
+	local after_joined = table.concat(after, "\n")
+	return vim.diff(before_joined, after_joined, { algorithm = "minimal", result_type = "indices" })
+end
+
 return diff
