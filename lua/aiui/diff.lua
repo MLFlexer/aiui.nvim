@@ -50,7 +50,11 @@ end
 function diff.get_diff_indices(before, after)
 	local before_joined = table.concat(before, "\n")
 	local after_joined = table.concat(after, "\n")
-	return vim.diff(before_joined, after_joined, { algorithm = "minimal", result_type = "indices" })
+	local indices = vim.diff(before_joined, after_joined, { result_type = "indices" })
+	if indices == nil then
+		error("Could not create indices for diff")
+	end
+	return indices
 end
 
 return diff
