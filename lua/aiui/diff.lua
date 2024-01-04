@@ -214,4 +214,45 @@ function diff.indices_to_hunks(index_list, before, after)
 	--return line_hunks, last_lines
 end
 
+function diff.insert_and_highlight_diff(bufnr, start_row, before, after)
+	local indices = diff.get_diff_indices(before, after)
+	local line_hunks, diff_lines = diff.indices_to_hunks(indices, before, after)
+	print("hi")
+	print(vim.inspect(line_hunks))
+	print(vim.inspect(diff_lines))
+	-- vim.print(vim.inspect(diff_lines))
+	-- vim.api.nvim_buf_set_lines(bufnr, start_row, #before, false, diff_lines)
+	-- for _, hunk in ipairs(line_hunks) do
+	-- 	local offset = start_row + hunk.unchanged[1] - 1
+	-- 	if hunk.before[2] - hunk.before[1] > 0 then
+	-- 		vim.highlight.range(
+	-- 			bufnr,
+	-- 			namespace,
+	-- 			"DiffDelete",
+	-- 			{ offset + hunk.before[1], 0 },
+	-- 			{ offset + hunk.before[2] - 1, 2147483646 },
+	-- 			{ inclusive = false }
+	-- 		)
+	-- 	end
+	-- 	if hunk.after[2] - hunk.after[1] > 0 then
+	-- 		vim.highlight.range(
+	-- 			bufnr,
+	-- 			namespace,
+	-- 			"DiffAdd",
+	-- 			{ offset + hunk.after[1], 0 },
+	-- 			{ offset + hunk.after[2] - 1, 2147483646 },
+	-- 			{ inclusive = false }
+	-- 		)
+	-- 	end
+	-- end
+
+	-- for i = hunk.before[1], hunk.before[2], 1 do
+	-- 	vim.api.nvim_buf_add_highlight(bufnr, -1, "DiffDelete", i, 0, -1)
+	-- end
+	-- for i = hunk.after[1], hunk.after[2], 1 do
+	-- 	vim.api.nvim_buf_add_highlight(bufnr, -1, "DiffAdd", i, 0, -1)
+	-- end
+	return #diff_lines
+end
+
 return diff
