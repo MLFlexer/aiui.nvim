@@ -58,160 +58,149 @@ function diff.get_diff_indices(before, after)
 end
 
 ---Creates text hunks and full text for highlighting
+---If there is a bug in this code there are tests *USE THEM*.
+---If the function seems complicated it is because it it... sorry...
 ---@param index_list integer[][]
 ---@param before string[]
 ---@param after string[]
----@return { index: any, unchanged: integer[], before: integer[], after: integer[]}[] --FIX: Change index to an actual value or remove it
+---@return { unchanged: integer[], before: integer[], after: integer[]}[]
 ---@return string[]
 function diff.indices_to_hunks(index_list, before, after)
-	-- print(vim.inspect(index_list))
-	-- function diff.indices_to_hunks(index_list)
-	local diff_text = {}
+	local diff_lines = {}
 	local line_hunks = {}
-	local prev_end = 1
-	for hunk_nr, index in ipairs(index_list) do
-		local hunk = {}
+	local hunk_start = 1
 
-		-- print("prev_end: " .. prev_end)
-		-- print(vim.inspect(index))
+	local function add_unchanged(from, to, hunk)
+		local start = #diff_lines + 1
+		for i = from, to do
+			table.insert(diff_lines, before[i])
+		end
+		hunk.unchanged = { start, #diff_lines }
+	end
+
+	local function add_before(from, to, hunk)
+		local start = #diff_lines + 1
+		if to > #before then
+			to = to - 1
+		end
+
+		for i = from, to do
+			table.insert(diff_lines, before[i])
+		end
+		hunk.before = { start, #diff_lines }
+	end
+
+	local function add_after(from, to, hunk)
+		local start = #diff_lines + 1
+		if to > #after then
+			to = to - 1
+		end
+
+		for i = from, to do
+			table.insert(diff_lines, after[i])
+		end
+		hunk.after = { start, #diff_lines }
+	end
+
+	for _, index in ipairs(index_list) do
+		local hunk = {}
+		local overwrite_hunk_val = -1
+
+		local count_unchanged = index[1] - hunk_start
+		local end_unchanged = hunk_start + count_unchanged
 
 		local start_a = index[1]
-		local end_a = start_a
-
-		if prev_end ~= start_a then
-			if hunk_nr > 1 and prev_end == 1 then
-				prev_end = 2
-			end
-			-- table.insert(diff_text, "U")
-			for i = prev_end, start_a - 1, 1 do
-				-- print("this is the unchanged")
-				-- vim.print(vim.inspect(before[i]))
-				table.insert(diff_text, before[i])
-			end
-			hunk.unchanged = { prev_end, start_a }
-		end
-
-		if start_a ~= #before then
-			-- table.insert(diff_text, "B")
-			if index[2] > 0 then
-				-- start_a = index[1]
-				end_a = index[1] + index[2] - 1
-				for i = start_a, end_a, 1 do
-					-- print("this is before")
-					-- vim.print(vim.inspect(before[i]))
-					table.insert(diff_text, before[i])
-				end
-				hunk.before = { start_a, end_a }
-			end
-		end
+		local count_a = index[2]
+		local end_a = start_a + count_a
 
 		local start_b = index[3]
-		local end_b = start_b
-		if index[4] > 0 then
-			-- print("this is after")
-			-- start_b = index[3]
-			end_b = index[3] + index[4] - 1
-			-- table.insert(diff_text, "A")
-			for i = start_b, end_b, 1 do
-				-- vim.print(vim.inspect(after[i]))
-				table.insert(diff_text, after[i])
+		local count_b = index[4]
+		local end_b = start_b + count_b
+
+		if start_a == end_a then
+			if start_a == 0 then
+				-- No lines from a is removed
+				-- No unchanged lines are added
+				-- Everything from b is added
+				add_after(start_b, end_b - 1, hunk)
+			else
+				-- add unchanged lines
+				-- add everything from b
+				add_unchanged(hunk_start, end_unchanged, hunk)
+				add_after(start_b, end_b - 1, hunk)
+				overwrite_hunk_val = end_unchanged + 1
 			end
-			hunk.after = { start_b, end_b }
-		end
+		elseif start_a == 1 and end_a == #before + 1 then
+			-- Everything from a is removed
 
-		table.insert(line_hunks, hunk)
-		-- print(vim.inspect(hunk))
-		-- print(vim.inspect(line_hunks))
+			-- No unchanged lines are added
+			-- If b is not empty add it
+			add_before(start_a, end_a, hunk)
 
-		if end_a > end_b then
-			prev_end = end_a
+			if count_b > 0 then
+				add_after(start_b, end_b, hunk)
+			end
+		elseif start_a == #before and end_a == #before + 1 then
+			if before[start_a] == after[start_b] then
+				-- add unchanged lines + before[start_a]
+				-- add lines from b
+				add_unchanged(hunk_start, end_unchanged, hunk)
+				add_after(start_b + 1, end_b - 1, hunk)
+			else
+				-- add unchanged
+				-- remove line from a
+				-- add lines from b
+				add_unchanged(hunk_start, end_unchanged - 1, hunk)
+				add_before(start_a, end_a - 1, hunk)
+				add_after(start_b, end_b - 1, hunk)
+			end
+		elseif end_a == #before + 1 then
+			-- Add all unchanged lines
+			-- remove a lines from start_a to and including the last line
+			-- add b
+			add_unchanged(hunk_start, end_unchanged, hunk)
+			add_before(start_a + 1, end_a - 1, hunk)
+			if count_b > 0 then
+				if count_b > 1 then
+					add_after(start_b, end_b, hunk)
+				end
+			end
+		elseif start_a == 1 then
+			--remove from start to end a
+			-- add b
+			add_before(start_a, end_a - 1, hunk)
+			if count_b > 0 then
+				add_after(start_b, end_b - 1, hunk)
+			end
 		else
-			prev_end = end_b
+			-- add unchanged lines
+			-- remove from start to end_a
+			-- add b
+			add_unchanged(hunk_start, end_unchanged - 1, hunk)
+			add_before(start_a, end_a - 1, hunk)
+			if count_b > 0 then
+				add_after(start_b, end_b - 1, hunk)
+			end
 		end
+
+		if overwrite_hunk_val > -1 then
+			hunk_start = overwrite_hunk_val
+			overwrite_hunk_val = -1
+		else
+			hunk_start = start_a + count_a
+		end
+
+		if hunk_start < 1 then
+			hunk_start = 1
+		end
+		table.insert(line_hunks, hunk)
 	end
 
-	--THIS IS THE OLD
-
-	-- 	local start_a = index[1]
-	-- 	local count_a = index[2]
-	-- 	local start_b = index[3]
-	-- 	local count_b = index[4]
-	-- 	local end_a = start_a + count_a
-	-- 	local end_b = start_b + count_b
-	--
-	-- 	-- local unchanged = {}
-	-- 	-- for i = prev_end, start_a, 1 do
-	-- 	-- 	table.insert(unchanged, before[i])
-	-- 	-- end
-	-- 	--
-	-- 	-- local before_lines = {}
-	-- 	-- for i = start_a, end_a, 1 do
-	-- 	-- 	table.insert(before_lines, before[i])
-	-- 	-- end
-	-- 	--
-	-- 	-- local after_lines = {}
-	-- 	-- for i = start_b, end_b, 1 do
-	-- 	-- 	table.insert(after_lines, after[i])
-	-- 	-- end
-	-- 	--
-	-- 	-- table.insert(line_hunks, {
-	-- 	-- 	index = index,
-	-- 	-- 	unchanged = unchanged,
-	-- 	-- 	before = before_lines,
-	-- 	-- 	after = after_lines,
-	-- 	-- })
-	--
-	-- 	table.insert(line_hunks, {
-	-- 		index = index,
-	-- 		unchanged = { prev_end, start_a },
-	-- 		before = { start_a, end_a },
-	-- 		after = { start_b, end_b },
-	-- 	})
-	--
-	-- 	if prev_end ~= start_a then
-	-- 		for i = prev_end, start_a - 1, 1 do
-	-- 			print("this is the unchanged")
-	-- 			vim.print(vim.inspect(before[i]))
-	-- 			table.insert(diff_text, before[i])
-	-- 		end
-	-- 	end
-	--
-	-- 	if start_a ~= end_a then
-	-- 		for i = start_a, end_a - 1, 1 do
-	-- 			print("this is the before")
-	-- 			vim.print(vim.inspect(before[i]))
-	-- 			table.insert(diff_text, before[i])
-	-- 		end
-	-- 	end
-	--
-	-- 	if start_b ~= end_b then
-	-- 		for i = start_b, end_b - 1, 1 do
-	-- 			print("this is the after")
-	-- 			vim.print(vim.inspect(after[i]))
-	-- 			table.insert(diff_text, after[i])
-	-- 		end
-	-- 	end
-	--
-	-- 	prev_end = end_a
-	-- end
-
-	if prev_end == 1 then
-		diff_text = before
-	-- elseif prev_end + 1 ~= #before then
-	elseif prev_end ~= #before then
-		-- table.insert(diff_text, "L")
-		for i = prev_end + 1, #before, 1 do
-			-- print("this is last part")
-			-- vim.print(vim.inspect(before[i]))
-			table.insert(diff_text, before[i])
-		end
+	-- add lines after last diff
+	for i = hunk_start, #before, 1 do
+		table.insert(diff_lines, before[i])
 	end
-	-- print("this is the diff text")
-	-- vim.print(vim.inspect(diff_text))
-
-	-- local last_lines = { lines = before, start_row = prev_end, end_row = #before + 1 } -- slice(org_lines, prev_end, #org_lines + 1)
-	return line_hunks, diff_text
-	--return line_hunks, last_lines
+	return line_hunks, diff_lines
 end
 
 function diff.insert_and_highlight_diff(bufnr, start_row, before, after)
