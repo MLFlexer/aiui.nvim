@@ -1,3 +1,5 @@
+local ModelCollection = require("aiui.ModelCollection")
+local namespace = vim.api.nvim_create_namespace("aiui_diff")
 local diff = {}
 
 ---returns a table of lines, position and buffer number
@@ -203,45 +205,107 @@ function diff.indices_to_hunks(index_list, before, after)
 	return line_hunks, diff_lines
 end
 
-function diff.insert_and_highlight_diff(bufnr, start_row, before, after)
+function diff.insert_and_highlight_diff(bufnr, start_row, end_row, before, after)
+	vim.print("THIS IS THE BEFORE")
+	vim.print(vim.inspect(before))
+	vim.print("THIS IS THE AFTER")
+	vim.print(vim.inspect(after))
 	local indices = diff.get_diff_indices(before, after)
 	local line_hunks, diff_lines = diff.indices_to_hunks(indices, before, after)
-	print("hi")
+	-- if start_row == 1 then
+	-- 	vim.api.nvim_buf_set_lines(bufnr, 0, #before, false, diff_lines)
+	-- else
+	print("Start_row: " .. start_row)
+	print("#before: " .. #before)
+	print("#diff_lines: " .. #diff_lines)
+	print("line_hunks: ")
 	print(vim.inspect(line_hunks))
-	print(vim.inspect(diff_lines))
-	-- vim.print(vim.inspect(diff_lines))
-	-- vim.api.nvim_buf_set_lines(bufnr, start_row, #before, false, diff_lines)
-	-- for _, hunk in ipairs(line_hunks) do
-	-- 	local offset = start_row + hunk.unchanged[1] - 1
-	-- 	if hunk.before[2] - hunk.before[1] > 0 then
-	-- 		vim.highlight.range(
-	-- 			bufnr,
-	-- 			namespace,
-	-- 			"DiffDelete",
-	-- 			{ offset + hunk.before[1], 0 },
-	-- 			{ offset + hunk.before[2] - 1, 2147483646 },
-	-- 			{ inclusive = false }
-	-- 		)
-	-- 	end
-	-- 	if hunk.after[2] - hunk.after[1] > 0 then
-	-- 		vim.highlight.range(
-	-- 			bufnr,
-	-- 			namespace,
-	-- 			"DiffAdd",
-	-- 			{ offset + hunk.after[1], 0 },
-	-- 			{ offset + hunk.after[2] - 1, 2147483646 },
-	-- 			{ inclusive = false }
-	-- 		)
-	-- 	end
+	vim.api.nvim_buf_set_lines(bufnr, start_row, end_row, false, diff_lines)
 	-- end
-
-	-- for i = hunk.before[1], hunk.before[2], 1 do
-	-- 	vim.api.nvim_buf_add_highlight(bufnr, -1, "DiffDelete", i, 0, -1)
-	-- end
-	-- for i = hunk.after[1], hunk.after[2], 1 do
-	-- 	vim.api.nvim_buf_add_highlight(bufnr, -1, "DiffAdd", i, 0, -1)
-	-- end
+	start_row = start_row - 1
+	for _, hunk in ipairs(line_hunks) do
+		if hunk.before then
+			vim.highlight.range(
+				bufnr,
+				namespace,
+				"DiffDelete",
+				{ hunk.before[1], 0 },
+				{ hunk.before[2], 2147483646 },
+				{ inclusive = false }
+			)
+		end
+		if hunk.after then
+			print("start: " .. start_row + hunk.after[1])
+			print("end: " .. start_row + hunk.after[2])
+			vim.highlight.range(
+				bufnr,
+				namespace,
+				"DiffAdd",
+				{ start_row + hunk.after[1], 0 },
+				{ start_row + hunk.after[2], 2147483646 },
+				{ inclusive = false }
+			)
+		end
+	end
 	return #diff_lines
+end
+
+function diff.diff_prompt(prompt, instance, response_formatter)
+	local line_selection = diff.get_visual_line_selection()
+	print("THIS IS THE LINES SELECTED")
+	vim.print(vim.inspect(line_selection))
+	prompt = { prompt, vim.fn.join(line_selection.lines, "\n") }
+
+	local function result_handler(result_lines)
+		result_lines = response_formatter(result_lines)
+		local num_diff_lines = diff.insert_and_highlight_diff(
+			line_selection.bufnr,
+			line_selection.start_row,
+			line_selection.end_row,
+			line_selection.lines,
+			result_lines
+		)
+		local confirm = vim.fn.input("Replace? (y): ")
+
+		if confirm:lower() == "y" or confirm:lower() == "yes" then
+			vim.api.nvim_buf_set_lines(
+				line_selection.bufnr,
+				line_selection.start_row,
+				line_selection.start_row + num_diff_lines,
+				true,
+				result_lines
+			)
+		else
+			vim.api.nvim_buf_set_lines(
+				line_selection.bufnr,
+				line_selection.start_row,
+				line_selection.start_row + num_diff_lines,
+				false,
+				line_selection.lines
+			)
+		end
+	end
+	local function error_handler(error)
+		error("FAILED REQUEST")
+	end
+
+	result_handler({
+		"-- Function to calculate the nth number in the Fibonacci sequence",
+		"function fibonacci(n)",
+		"\t-- Base case: if n is less than or equal to 0, return 0",
+		"\tif n <= 0 then",
+		"\t\treturn 0",
+		"\t-- Base case: if n is equal to 1, return 1",
+		"\telseif n == 1 then",
+		"\t\treturn 1",
+		"\t-- Recursive case: return the sum of the previous two numbers in the sequence",
+		"\telse",
+		"\t\treturn fibonacci(n - 1) + fibonacci(n - 2)",
+		"\tend",
+		"end",
+	})
+
+	-- ModelCollection:request_response(instance, prompt, result_handler, error_handler)
 end
 
 return diff
