@@ -229,8 +229,8 @@ function diff.insert_and_highlight_diff(bufnr, start_row, end_row, before, after
 				bufnr,
 				namespace,
 				"DiffDelete",
-				{ hunk.before[1], 0 },
-				{ hunk.before[2], 2147483646 },
+				{ start_row + hunk.before[1], 0 },
+				{ start_row + hunk.before[2], 2147483646 },
 				{ inclusive = false }
 			)
 		end
