@@ -25,13 +25,17 @@ vim.api.nvim_create_user_command("AN", function()
 		testing_model = { name = "testing_model", client = test_model },
 		orca_mini = { name = "orca-mini", client = ollama_model },
 		mistral_tiny = { name = "mistral-tiny", client = mistral_client },
+		mistral_small = { name = "mistral-small", client = mistral_client },
+		mistral_medium = { name = "mistral-medium", client = mistral_client },
 		gpt3 = { name = "gpt-3.5-turbo-1106", client = openai_client },
+		gpt4 = { name = "gpt-4-1106-preview", client = openai_client },
 	})
 	ModelCollection:add_agents({
 		mistral_agent = "You are a chatbot, answer short and concise.",
 		gpt3_agent = "You are gpt3, a chatbot, answer short and concise.",
 		testing_agent = "testing agent system prompt",
 		random_agent = "always respond with a number between 0 and 10.",
+		add_comments = "Only reply with code",
 	})
 	local instance = { name = "Mistral Tiny", model = "mistral_tiny", context = {}, agent = "mistral_agent" }
 	-- instance = { name = "ollama instance", model = "orca_mini", context = {}, agent = "random_agent" }
