@@ -225,26 +225,37 @@ function diff.insert_and_highlight_diff(bufnr, start_row, end_row, before, after
 	start_row = start_row - 1
 	for _, hunk in ipairs(line_hunks) do
 		if hunk.before then
-			vim.highlight.range(
-				bufnr,
-				namespace,
-				"DiffDelete",
-				{ start_row + hunk.before[1], 0 },
-				{ start_row + hunk.before[2], 2147483646 },
-				{ inclusive = false }
-			)
+			vim.api.nvim_buf_set_extmark(bufnr, namespace, start_row + hunk.before[1], 0, {
+				end_row = start_row + hunk.before[2],
+				line_hl_group = "DiffDelete",
+			})
+			-- vim.highlight.range(
+			-- 	bufnr,
+			-- 	namespace,
+			-- 	"DiffDelete",
+			-- 	{ start_row + hunk.before[1], 0 },
+			-- 	{ start_row + hunk.before[2], 2147483646 },
+			-- 	{ inclusive = false }
+			-- )
 		end
 		if hunk.after then
-			print("start: " .. start_row + hunk.after[1])
-			print("end: " .. start_row + hunk.after[2])
-			vim.highlight.range(
+			vim.api.nvim_buf_set_extmark(
 				bufnr,
 				namespace,
-				"DiffAdd",
-				{ start_row + hunk.after[1], 0 },
-				{ start_row + hunk.after[2], 2147483646 },
-				{ inclusive = false }
+				start_row + hunk.after[1],
+				0,
+				{ end_row = start_row + hunk.after[2], line_hl_group = "DiffAdd" }
 			)
+			-- print("start: " .. start_row + hunk.after[1])
+			-- print("end: " .. start_row + hunk.after[2])
+			-- vim.highlight.range(
+			-- 	bufnr,
+			-- 	namespace,
+			-- 	"DiffAdd",
+			-- 	{ start_row + hunk.after[1], 0 },
+			-- 	{ start_row + hunk.after[2], 2147483646 },
+			-- 	{ inclusive = false }
+			-- )
 		end
 	end
 	return #diff_lines
@@ -266,6 +277,12 @@ function diff.diff_prompt(prompt, instance, response_formatter)
 			result_lines
 		)
 		local confirm = vim.fn.input("Replace? (y): ")
+		vim.api.nvim_buf_clear_namespace(
+			line_selection.bufnr,
+			namespace,
+			line_selection.start_row,
+			line_selection.start_row + num_diff_lines
+		)
 
 		if confirm:lower() == "y" or confirm:lower() == "yes" then
 			vim.api.nvim_buf_set_lines(
