@@ -2,7 +2,7 @@ local diff = {}
 
 ---returns a table of lines, position and buffer number
 ---@return {lines: string[], start_row: integer, start_col: integer, end_col: integer, end_row: integer, bufnr: integer}
-function diff.get_visual_text()
+function diff.get_visual_text_selection()
 	local start_pos = vim.fn.getpos("'<")
 	local end_pos = vim.fn.getpos("'>")
 	local result = {
@@ -31,11 +31,11 @@ end
 
 ---returns a table of lines, position and buffer number
 ---@return {lines: string[], start_row: integer, end_row: integer, bufnr: integer}
-function diff.get_visual_lines()
+function diff.get_visual_line_selection()
 	local start_pos = vim.fn.getpos("'<")
 	local end_pos = vim.fn.getpos("'>")
 	local result = {
-		start_row = start_pos[2],
+		start_row = start_pos[2] - 1,
 		end_row = end_pos[2],
 		bufnr = start_pos[1],
 	}
