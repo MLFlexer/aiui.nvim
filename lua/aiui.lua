@@ -14,6 +14,26 @@ local function decrypt_file_with_gpg(file_path)
 	end
 end
 
+local diff = require("aiui.diff")
+vim.api.nvim_create_user_command("DVL", function()
+	local prompt =
+		"Add comments to the following code. Your answer should only contain code, no markdown formatting or explanation.\n"
+	local instance = { name = "code commenter", model = "mistral_medium", context = {}, agent = "mistral_agent" }
+	local function result_formatter(lines)
+		print(vim.inspect(lines))
+		local response = table.concat(lines, "\n")
+		local exstracted_code = response:match("```lua(.-)```")
+		if exstracted_code then
+			local result = vim.fn.split(exstracted_code, "\n")
+			print(vim.inspect(result))
+			return result
+		else
+			return lines
+		end
+	end
+	diff.diff_prompt(prompt, instance, result_formatter)
+end, { range = 2 })
+
 vim.api.nvim_create_user_command("AN", function()
 	local test_model = require("testing.models.clients.test_client")
 	local ollama_model = require("models.clients.ollama.ollama_curl")
