@@ -168,7 +168,7 @@ end
 ---@param response_formatter fun(lines: string[]): string[]
 function diff.diff_prompt(prompt, instance, response_formatter)
 	local line_selection = diff.get_visual_line_selection()
-	if line_selection == nil or #line_selection == 0 then
+	if line_selection == nil or line_selection.lines == 0 then
 		error("Visual line selection not found")
 	end
 	prompt = { prompt, vim.fn.join(line_selection.lines, "\n") }
