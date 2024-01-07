@@ -140,7 +140,9 @@ end
 function diff.insert_and_highlight_diff(bufnr, start_row, end_row, before, after)
 	local indices = diff.get_diff_indices(before, after)
 	local line_hunks = diff.indices_to_hunks(indices, before, after)
+	vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
 	vim.api.nvim_buf_set_lines(bufnr, start_row, end_row, false, after)
+	vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
 	for _, hunk in ipairs(line_hunks) do
 		if hunk.add then
 			vim.api.nvim_buf_set_extmark(bufnr, namespace, start_row + hunk.add[1], 0, {
