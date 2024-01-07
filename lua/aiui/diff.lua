@@ -205,124 +205,67 @@ function diff.indices_to_hunks(index_list, before, after)
 	return line_hunks, diff_lines
 end
 
+---insert and highlight diff
+---@param bufnr integer
+---@param start_row integer
+---@param end_row integer
+---@param before string[]
+---@param after string[]
 function diff.insert_and_highlight_diff(bufnr, start_row, end_row, before, after)
-	vim.print("THIS IS THE BEFORE")
-	vim.print(vim.inspect(before))
-	vim.print("THIS IS THE AFTER")
-	vim.print(vim.inspect(after))
 	local indices = diff.get_diff_indices(before, after)
-	local line_hunks, diff_lines = diff.indices_to_hunks(indices, before, after)
-	-- if start_row == 1 then
-	-- 	vim.api.nvim_buf_set_lines(bufnr, 0, #before, false, diff_lines)
-	-- else
-	print("Start_row: " .. start_row)
-	print("#before: " .. #before)
-	print("#diff_lines: " .. #diff_lines)
-	print("line_hunks: ")
-	print(vim.inspect(line_hunks))
-	vim.api.nvim_buf_set_lines(bufnr, start_row, end_row, false, diff_lines)
-	-- end
-	start_row = start_row - 1
+	local line_hunks = diff.indices_to_hunks(indices, before, after)
+	vim.api.nvim_buf_set_lines(bufnr, start_row, end_row, false, after)
 	for _, hunk in ipairs(line_hunks) do
-		if hunk.before then
-			vim.api.nvim_buf_set_extmark(bufnr, namespace, start_row + hunk.before[1], 0, {
-				end_row = start_row + hunk.before[2],
-				line_hl_group = "DiffDelete",
+		if hunk.add then
+			vim.api.nvim_buf_set_extmark(bufnr, namespace, start_row + hunk.add[1], 0, {
+				end_row = start_row + hunk.add[2],
+				line_hl_group = "DiffAdd",
 			})
-			-- vim.highlight.range(
-			-- 	bufnr,
-			-- 	namespace,
-			-- 	"DiffDelete",
-			-- 	{ start_row + hunk.before[1], 0 },
-			-- 	{ start_row + hunk.before[2], 2147483646 },
-			-- 	{ inclusive = false }
-			-- )
 		end
-		if hunk.after then
-			vim.api.nvim_buf_set_extmark(
-				bufnr,
-				namespace,
-				start_row + hunk.after[1],
-				0,
-				{ end_row = start_row + hunk.after[2], line_hl_group = "DiffAdd" }
-			)
-			-- print("start: " .. start_row + hunk.after[1])
-			-- print("end: " .. start_row + hunk.after[2])
-			-- vim.highlight.range(
-			-- 	bufnr,
-			-- 	namespace,
-			-- 	"DiffAdd",
-			-- 	{ start_row + hunk.after[1], 0 },
-			-- 	{ start_row + hunk.after[2], 2147483646 },
-			-- 	{ inclusive = false }
-			-- )
+		if hunk.delete then
+			local virt_lines = vim.tbl_map(function(line)
+				return { { line, "DiffDelete" } }
+			end, hunk.delete[3])
+			vim.api.nvim_buf_set_extmark(bufnr, namespace, start_row + hunk.delete[1], 0, {
+				end_row = start_row + hunk.delete[2],
+				virt_lines = virt_lines,
+			})
 		end
 	end
-	return #diff_lines
 end
 
+---prompt a LLM with visual lines and then diff the response
+---@param prompt string[]
+---@param instance instance
+---@param response_formatter fun(lines: string[]): string[]
 function diff.diff_prompt(prompt, instance, response_formatter)
 	local line_selection = diff.get_visual_line_selection()
-	print("THIS IS THE LINES SELECTED")
-	vim.print(vim.inspect(line_selection))
+	if line_selection == nil or #line_selection == 0 then
+		error("Visual line selection not found")
+	end
 	prompt = { prompt, vim.fn.join(line_selection.lines, "\n") }
 
 	local function result_handler(result_lines)
-		result_lines = response_formatter(result_lines)
-		local num_diff_lines = diff.insert_and_highlight_diff(
+		response_formatter(result_lines)
+		diff.insert_and_highlight_diff(
 			line_selection.bufnr,
 			line_selection.start_row,
 			line_selection.end_row,
 			line_selection.lines,
 			result_lines
 		)
-		local confirm = vim.fn.input("Replace? (y): ")
-		vim.api.nvim_buf_clear_namespace(
-			line_selection.bufnr,
-			namespace,
-			line_selection.start_row,
-			line_selection.start_row + num_diff_lines
-		)
-
-		if confirm:lower() == "y" or confirm:lower() == "yes" then
-			vim.api.nvim_buf_set_lines(
-				line_selection.bufnr,
-				line_selection.start_row,
-				line_selection.start_row + num_diff_lines,
-				true,
-				result_lines
-			)
-		else
-			vim.api.nvim_buf_set_lines(
-				line_selection.bufnr,
-				line_selection.start_row,
-				line_selection.start_row + num_diff_lines,
-				false,
-				line_selection.lines
-			)
-		end
 	end
 	local function error_handler(error)
 		error("FAILED REQUEST")
 	end
 
-	result_handler({
-		"-- Function to calculate the nth number in the Fibonacci sequence",
-		"function fibonacci(n)",
-		"\t-- Base case: if n is less than or equal to 0, return 0",
-		"\tif n <= 0 then",
-		"\t\treturn 0",
-		"\t-- Base case: if n is equal to 1, return 1",
-		"\telseif n == 1 then",
-		"\t\treturn 1",
-		"\t-- Recursive case: return the sum of the previous two numbers in the sequence",
-		"\telse",
-		"\t\treturn fibonacci(n - 1) + fibonacci(n - 2)",
-		"\tend",
-		"end",
-	})
+	vim.api.nvim_buf_set_option(line_selection.bufnr, "modifiable", false)
+	ModelCollection:request_response(instance, prompt, result_handler, error_handler)
+end
 
-	-- ModelCollection:request_response(instance, prompt, result_handler, error_handler)
+function diff.accept_changes(bufnr)
+	vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+	vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
 end
 
 return diff
