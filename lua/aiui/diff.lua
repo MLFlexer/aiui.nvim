@@ -67,7 +67,6 @@ end
 ---@param after string[]
 ---@return { delete: {[1]: integer, [2]: integer, [3]: string[]} | nil, add: integer[] | nil}[]
 function diff.indices_to_hunks(index_list, before, after)
-	local diff_lines = {}
 	local line_hunks = {}
 
 	local l_num = 0
@@ -129,9 +128,6 @@ function diff.indices_to_hunks(index_list, before, after)
 		table.insert(line_hunks, hunk)
 	end
 
-	for i = l_num, #before, 1 do
-		table.insert(diff_lines, before[i])
-	end
 	return line_hunks
 end
 
