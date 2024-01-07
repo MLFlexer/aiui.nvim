@@ -162,7 +162,7 @@ function diff.insert_and_highlight_diff(bufnr, start_row, end_row, before, after
 	end
 end
 
----prompt a LLM with visual lines and then diff the response
+---prompt a LLM with visual line selection and diff the response inline
 ---@param prompt string[]
 ---@param instance instance
 ---@param response_formatter fun(lines: string[]): string[]
