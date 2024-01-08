@@ -22,6 +22,7 @@ describe("full change", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 	it("All lines removed", function()
 		local a = {
@@ -36,6 +37,7 @@ describe("full change", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 	it("All lines changed", function()
 		local a = {
@@ -56,6 +58,7 @@ describe("full change", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 end)
 
@@ -79,6 +82,7 @@ describe("remove tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("1 removed", function()
@@ -100,6 +104,7 @@ describe("remove tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("5 removed", function()
@@ -120,6 +125,7 @@ describe("remove tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("2,3 removed", function()
@@ -139,6 +145,7 @@ describe("remove tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("1,2 removed", function()
@@ -158,6 +165,7 @@ describe("remove tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("4,5 removed", function()
@@ -177,6 +185,7 @@ describe("remove tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("1,5 removed", function()
@@ -196,6 +205,7 @@ describe("remove tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 	it("2,4 removed", function()
 		local a = {
@@ -214,6 +224,7 @@ describe("remove tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 end)
 
@@ -239,6 +250,7 @@ describe("addition tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("0 added", function()
@@ -261,6 +273,7 @@ describe("addition tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("6 added", function()
@@ -283,6 +296,7 @@ describe("addition tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("3.1, 3.2 added", function()
@@ -306,6 +320,7 @@ describe("addition tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("-1,0 added", function()
@@ -329,6 +344,7 @@ describe("addition tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("6,7 added", function()
@@ -352,6 +368,7 @@ describe("addition tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("0,6 added", function()
@@ -375,6 +392,7 @@ describe("addition tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 	it("2.5, 4.5 added", function()
 		local a = {
@@ -397,6 +415,7 @@ describe("addition tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("1 replaced by 0", function()
@@ -418,6 +437,7 @@ describe("addition tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 
 	it("5 replaced by 6", function()
@@ -439,6 +459,7 @@ describe("addition tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 	it("3 replaced by x", function()
 		local a = {
@@ -459,5 +480,6 @@ describe("addition tests:", function()
 
 		local hunks = diff.indices_to_hunks(diff.get_diff_indices(a, b), a, b)
 		assert.same(expected_hunks, hunks)
+		diff.insert_and_highlight_diff(0, 0, #a, b, hunks)
 	end)
 end)
