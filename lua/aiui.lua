@@ -16,9 +16,10 @@ end
 
 local diff = require("aiui.diff")
 vim.api.nvim_create_user_command("DD", function()
-	local prompt = "Add comments to the following code. Your answer should only contain code.\n"
-	local instance = { name = "code commenter", model = "mistral_medium", context = {}, agent = "mistral_agent" }
-	local function result_formatter(lines)
+	-- local prompt = "Add comments to the following code. Your answer should only contain code.\n"
+	local prompt = "diff"
+	local instance = { name = "code commenter", model = "testing_model", context = {}, agent = "mistral_agent" }
+	local function response_formatter(lines)
 		print(vim.inspect(lines))
 		local response = table.concat(lines, "\n")
 		local exstracted_code = response:match("```.*\n(.-)```")
@@ -30,11 +31,15 @@ vim.api.nvim_create_user_command("DD", function()
 			return lines
 		end
 	end
-	diff.diff_prompt(prompt, instance, result_formatter)
+	local function prompt_formatter(lines)
+		return { prompt, vim.fn.join(lines, "\n") }
+	end
+	-- diff.diff_prompt(prompt, instance, result_formatter)
+	diff.diff_visual_lines(instance, prompt_formatter, response_formatter)
 end, { range = 2 })
 
 vim.api.nvim_create_user_command("DA", function()
-	diff.accept_changes(0)
+	diff.accept_all_changes(0)
 end, {})
 
 vim.api.nvim_create_user_command("AN", function()
