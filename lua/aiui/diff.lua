@@ -183,6 +183,14 @@ function diff.diff_lines_inline(bufnr, start_row, end_row, prev_lines, new_lines
 	print(vim.inspect(new_lines))
 	diff.insert_and_highlight_diff(bufnr, start_row, end_row, new_lines, diff_hunks)
 end
+
+---accepts all inline diff changes by removing diff highlighting
+---and enableing modifing the buffer
+---@param bufnr integer
+function diff.accept_all_changes(bufnr)
+	vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
+end
+
 ---prompt a LLM with visual line selection and diff the response inline
 ---@param prompt string[]
 ---@param instance instance
