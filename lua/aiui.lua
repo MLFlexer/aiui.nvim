@@ -14,6 +14,34 @@ local function decrypt_file_with_gpg(file_path)
 	end
 end
 
+local diff = require("aiui.diff")
+vim.api.nvim_create_user_command("DD", function()
+	local prompt = "Add comments to the following code.\n"
+	-- local prompt = "diff"
+	local instance = { name = "code commenter", model = "mistral_medium", context = {}, agent = "mistral_agent" }
+	local function response_formatter(lines)
+		print(vim.inspect(lines))
+		local response = table.concat(lines, "\n")
+		local exstracted_code = response:match("```.*\n(.-)```")
+		if exstracted_code then
+			local result = vim.fn.split(exstracted_code, "\n")
+			print(vim.inspect(result))
+			return result
+		else
+			return lines
+		end
+	end
+	local function prompt_formatter(lines)
+		return { prompt, vim.fn.join(lines, "\n") }
+	end
+	-- diff.diff_prompt(prompt, instance, result_formatter)
+	diff.diff_visual_lines(instance, prompt_formatter, response_formatter)
+end, { range = 2 })
+
+vim.api.nvim_create_user_command("DA", function()
+	diff.accept_all_changes(0)
+end, {})
+
 vim.api.nvim_create_user_command("AN", function()
 	local test_model = require("testing.models.clients.test_client")
 	local ollama_model = require("models.clients.ollama.ollama_curl")
@@ -25,13 +53,17 @@ vim.api.nvim_create_user_command("AN", function()
 		testing_model = { name = "testing_model", client = test_model },
 		orca_mini = { name = "orca-mini", client = ollama_model },
 		mistral_tiny = { name = "mistral-tiny", client = mistral_client },
+		mistral_small = { name = "mistral-small", client = mistral_client },
+		mistral_medium = { name = "mistral-medium", client = mistral_client },
 		gpt3 = { name = "gpt-3.5-turbo-1106", client = openai_client },
+		gpt4 = { name = "gpt-4-1106-preview", client = openai_client },
 	})
 	ModelCollection:add_agents({
 		mistral_agent = "You are a chatbot, answer short and concise.",
 		gpt3_agent = "You are gpt3, a chatbot, answer short and concise.",
 		testing_agent = "testing agent system prompt",
 		random_agent = "always respond with a number between 0 and 10.",
+		add_comments = "Only reply with code",
 	})
 	local instance = { name = "Mistral Tiny", model = "mistral_tiny", context = {}, agent = "mistral_agent" }
 	-- instance = { name = "ollama instance", model = "orca_mini", context = {}, agent = "random_agent" }

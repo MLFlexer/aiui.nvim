@@ -50,6 +50,17 @@ function TestClient:request(
 )
 	if request_msg[1] == "error" then
 		error("THIS IS AN ERROR")
+	elseif request_msg[1] == "diff" then
+		result_handler({
+			"---Request response from model API",
+			"---@param model_name string",
+			"---@param request_msg string[]",
+			"---@param system_msg string",
+			"---@param context message[]",
+			"---@param result_handler result_handler",
+			"---@param error_handler error_handler",
+			"---@param context_handler context_handler",
+		})
 	else
 		local output = {}
 		if has_empty_context(context) then
