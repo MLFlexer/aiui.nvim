@@ -59,8 +59,8 @@ function diff.get_diff_indices(before, after)
 	return indices
 end
 
----Creates text hunks and full text for highlighting
----If there is a bug in this code there are tests *USE THEM*.
+---Creates diff hunks for inline diff highlighting
+---If there is a bug in this code there are tests **USE THEM**.
 ---If the function seems complicated it is because it it... sorry...
 ---@param index_list integer[][]
 ---@param before string[]
@@ -135,7 +135,6 @@ end
 ---@param bufnr integer
 ---@param start_row integer
 ---@param end_row integer
----@param before string[]
 ---@param after string[]
 function diff.insert_and_highlight_diff(bufnr, start_row, end_row, before, after)
 	local indices = diff.get_diff_indices(before, after)
