@@ -16,9 +16,9 @@ end
 
 local diff = require("aiui.diff")
 vim.api.nvim_create_user_command("DD", function()
-	-- local prompt = "Add comments to the following code. Your answer should only contain code.\n"
-	local prompt = "diff"
-	local instance = { name = "code commenter", model = "testing_model", context = {}, agent = "mistral_agent" }
+	local prompt = "Add comments to the following code.\n"
+	-- local prompt = "diff"
+	local instance = { name = "code commenter", model = "mistral_medium", context = {}, agent = "mistral_agent" }
 	local function response_formatter(lines)
 		print(vim.inspect(lines))
 		local response = table.concat(lines, "\n")
