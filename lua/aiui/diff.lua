@@ -192,37 +192,37 @@ function diff.accept_all_changes(bufnr)
 end
 
 ---prompt a LLM with visual line selection and diff the response inline
----@param prompt string[]
 ---@param instance instance
+---@param prompt_formatter fun(lines: string[]): string[]
 ---@param response_formatter fun(lines: string[]): string[]
-function diff.diff_prompt(prompt, instance, response_formatter)
-	local line_selection = diff.get_visual_line_selection()
-	if line_selection == nil or line_selection.lines == 0 then
+function diff.diff_visual_lines(instance, prompt_formatter, response_formatter)
+	local selection = diff.get_visual_line_selection()
+	if selection == nil or selection.lines == 0 then
 		error("Visual line selection not found")
 	end
-	prompt = { prompt, vim.fn.join(line_selection.lines, "\n") }
 
-	local function result_handler(result_lines)
-		response_formatter(result_lines)
-		diff.insert_and_highlight_diff(
-			line_selection.bufnr,
-			line_selection.start_row,
-			line_selection.end_row,
-			line_selection.lines,
-			result_lines
+	print(vim.inspect(selection))
+	local prompt_lines = prompt_formatter(selection.lines)
+
+	local function result_handler(response_lines)
+		response_lines = response_formatter(response_lines)
+		vim.api.nvim_buf_set_option(selection.bufnr, "modifiable", true)
+		diff.diff_lines_inline(
+			selection.bufnr,
+			selection.start_row - 1,
+			selection.end_row,
+			selection.lines,
+			response_lines
 		)
 	end
-	local function error_handler(error)
-		error("FAILED REQUEST")
+
+	local function error_handler()
+		vim.api.nvim_buf_set_option(selection.bufnr, "modifiable", true)
+		error("Could not get response for inline diff")
 	end
 
-	vim.api.nvim_buf_set_option(line_selection.bufnr, "modifiable", false)
-	ModelCollection:request_response(instance, prompt, result_handler, error_handler)
-end
-
-function diff.accept_changes(bufnr)
-	vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
-	vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
+	vim.api.nvim_buf_set_option(selection.bufnr, "modifiable", false)
+	ModelCollection:request_response(instance, prompt_lines, result_handler, error_handler)
 end
 
 return diff
