@@ -170,6 +170,19 @@ function diff.insert_and_highlight_diff(bufnr, start_row, end_row, after, diff_h
 	end
 end
 
+---make an inline diff on lines before and after change
+---@param bufnr integer
+---@param start_row integer
+---@param end_row integer
+---@param prev_lines string[]
+---@param new_lines string[]
+function diff.diff_lines_inline(bufnr, start_row, end_row, prev_lines, new_lines)
+	local indices = diff.get_diff_indices(prev_lines, new_lines)
+	local diff_hunks = diff.indices_to_hunks(indices, prev_lines, new_lines)
+	print(vim.inspect(prev_lines))
+	print(vim.inspect(new_lines))
+	diff.insert_and_highlight_diff(bufnr, start_row, end_row, new_lines, diff_hunks)
+end
 ---prompt a LLM with visual line selection and diff the response inline
 ---@param prompt string[]
 ---@param instance instance
