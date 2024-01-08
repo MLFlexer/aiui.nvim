@@ -37,12 +37,12 @@ function diff.get_visual_line_selection()
 	local start_pos = vim.fn.getpos("'<")
 	local end_pos = vim.fn.getpos("'>")
 	local result = {
-		start_row = start_pos[2] - 1,
+		start_row = start_pos[2],
 		end_row = end_pos[2],
 		bufnr = start_pos[1],
 	}
 
-	result.lines = vim.api.nvim_buf_get_lines(result.bufnr, result.start_row, result.end_row, false)
+	result.lines = vim.api.nvim_buf_get_lines(result.bufnr, result.start_row - 1, result.end_row, false)
 	return result
 end
 
