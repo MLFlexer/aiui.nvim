@@ -136,25 +136,34 @@ end
 ---@param start_row integer
 ---@param end_row integer
 ---@param after string[]
-function diff.insert_and_highlight_diff(bufnr, start_row, end_row, before, after)
-	local indices = diff.get_diff_indices(before, after)
-	local line_hunks = diff.indices_to_hunks(indices, before, after)
-	vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+---@param diff_hunks { delete: {[1]: integer, [2]: integer, [3]: string[]} | nil, add: integer[] | nil}[]
+function diff.insert_and_highlight_diff(bufnr, start_row, end_row, after, diff_hunks)
 	vim.api.nvim_buf_set_lines(bufnr, start_row, end_row, false, after)
-	vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
-	for _, hunk in ipairs(line_hunks) do
+
+	for _, hunk in ipairs(diff_hunks) do
 		if hunk.add then
-			vim.api.nvim_buf_set_extmark(bufnr, namespace, start_row + hunk.add[1], 0, {
-				end_row = start_row + hunk.add[2],
-				line_hl_group = "DiffAdd",
-			})
-		end
-		if hunk.delete then
+			-- use range to highlight normal lines, extmark for virtual lines
+			vim.highlight.range(
+				bufnr,
+				namespace,
+				"DiffAdd",
+				{ start_row + hunk.add[1], 0 },
+				{ start_row + hunk.add[2] - 1, 2147483646 },
+				{ inclusive = false }
+			)
+			if hunk.delete then -- add deletes after added lines
+				local virt_lines = vim.tbl_map(function(line)
+					return { { line, "DiffDelete" } }
+				end, hunk.delete[3])
+				vim.api.nvim_buf_set_extmark(bufnr, namespace, start_row + hunk.add[2] - 1, 0, {
+					virt_lines = virt_lines,
+				})
+			end
+		elseif hunk.delete then
 			local virt_lines = vim.tbl_map(function(line)
 				return { { line, "DiffDelete" } }
 			end, hunk.delete[3])
-			vim.api.nvim_buf_set_extmark(bufnr, namespace, start_row + hunk.delete[1], 0, {
-				end_row = start_row + hunk.delete[2],
+			vim.api.nvim_buf_set_extmark(bufnr, namespace, math.max(start_row + hunk.delete[1] - 1, 0), 0, {
 				virt_lines = virt_lines,
 			})
 		end
