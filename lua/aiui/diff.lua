@@ -16,7 +16,7 @@ function diff.get_visual_text_selection()
 	}
 
 	if result.end_col == 2147483647 then
-		result.lines = vim.api.nvim_buf_get_lines(result.bufnr, result.start_row, result.end_row, false)
+		result.lines = vim.api.nvim_buf_get_lines(result.bufnr, result.start_row - 1, result.end_row, false)
 	else
 		result.lines = vim.api.nvim_buf_get_text(
 			result.bufnr,
@@ -179,8 +179,6 @@ end
 function diff.diff_lines_inline(bufnr, start_row, end_row, prev_lines, new_lines)
 	local indices = diff.get_diff_indices(prev_lines, new_lines)
 	local diff_hunks = diff.indices_to_hunks(indices, prev_lines, new_lines)
-	print(vim.inspect(prev_lines))
-	print(vim.inspect(new_lines))
 	diff.insert_and_highlight_diff(bufnr, start_row, end_row, new_lines, diff_hunks)
 end
 
@@ -201,7 +199,6 @@ function diff.diff_visual_lines(instance, prompt_formatter, response_formatter)
 		error("Visual line selection not found")
 	end
 
-	print(vim.inspect(selection))
 	local prompt_lines = prompt_formatter(selection.lines)
 
 	local function result_handler(response_lines)
