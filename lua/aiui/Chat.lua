@@ -134,11 +134,10 @@ function Chat:apply_default_keymaps()
 			self:toggle()
 		end, {}),
 		self:make_keymap("n", "<CR>", function()
-			self:request_model()
-			-- self:request_streamed_response()
+			self:request_streamed_response()
 		end, {}),
 		self:make_keymap("n", "<leader><CR>", function()
-			self:request_streamed_response()
+			self:request_model()
 		end, {}),
 	}
 	local output_keymaps = { self:make_keymap("n", "<ESC>", function()

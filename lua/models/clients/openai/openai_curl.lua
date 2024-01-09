@@ -5,21 +5,35 @@ local Job = require("plenary.job")
 ---@class OpenaiCurl : ModelClient
 local OpenAIModel = {
 	name = "openai_curl",
-	command = "curl",
-	args = {
-		"https://api.openai.com/v1/chat/completions",
-		"-H",
-		"Content-Type: application/json",
-		"-H",
-		"openai key",
-		"-d",
-		"json request body",
-	},
 }
+
+local command = "curl"
+local args = {
+	"https://api.openai.com/v1/chat/completions",
+	"-H",
+	"Content-Type: application/json",
+	"-H",
+	"openai key",
+	"-d",
+	"json request body",
+}
+
+---returns a list of models to be used with the OpenAI API
+---@return model_map
+function OpenAIModel:get_default_models()
+	local model_map = {}
+	model_map["gpt-4"] = { name = "gpt-4", client = self }
+	model_map["gpt-4-32k"] = { name = "gpt-4-32k", client = self }
+	model_map["gpt-4-turbo"] = { name = "gpt-4-1106-preview", client = self }
+	model_map["gpt-3.5-turbo"] = { name = "gpt-3.5-turbo", client = self }
+	model_map["gpt-3.5-turbo-16k"] = { name = "gpt-3.5-turbo-16k", client = self }
+	model_map["gpt-3.5-turbo-1106"] = { name = "gpt-3.5-turbo-1106", client = self }
+	return model_map
+end
 
 ---@param api_key string
 function OpenAIModel:set_api_key(api_key)
-	self.args[5] = "Authorization: Bearer " .. api_key
+	args[5] = "Authorization: Bearer " .. api_key
 end
 
 ---@param json string
@@ -103,10 +117,10 @@ function OpenAIModel:request(
 	if not json_body then
 		error("Could not encode table to json: " .. vim.inspect(request_table))
 	end
-	local args = insert_request_body(json_body, self.args)
+	local job_args = insert_request_body(json_body, args)
 	Job:new({
-		command = self.command,
-		args = args,
+		command = command,
+		args = job_args,
 		on_exit = on_exit_request(result_handler, error_handler, context_handler, request_table.messages),
 	}):start()
 end
@@ -202,10 +216,10 @@ function OpenAIModel:stream_request(model_name, request_msg, system_msg, context
 	if not json_body then
 		error("Could not encode table to json: " .. vim.inspect(request_table))
 	end
-	local args = insert_request_body(json_body, self.args)
+	local job_args = insert_request_body(json_body, args)
 	Job:new({
-		command = self.command,
-		args = args,
+		command = command,
+		args = job_args,
 		on_stdout = on_stdout_stream(chunk_handler),
 		on_exit = on_exit_stream(context_handler, request_table.messages),
 	}):start()
