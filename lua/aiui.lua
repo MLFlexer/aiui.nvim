@@ -43,7 +43,7 @@ vim.api.nvim_create_user_command("DA", function()
 end, {})
 
 vim.api.nvim_create_user_command("AN", function()
-	local test_model = require("testing.models.clients.test_client")
+	local test_model = require("models.clients.test.test_client")
 	local ollama_model = require("models.clients.ollama.ollama_curl")
 	local mistral_client = require("models.clients.mistral.mistral_curl")
 	local openai_client = require("models.clients.openai.openai_curl")
