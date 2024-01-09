@@ -1,5 +1,5 @@
 -- to run use following cmd:
--- PlenaryBustedFile lua/testing/diff/diff_test.lua
+-- PlenaryBustedDirectory tests
 local diff = require("aiui.diff")
 
 describe("full change", function()
