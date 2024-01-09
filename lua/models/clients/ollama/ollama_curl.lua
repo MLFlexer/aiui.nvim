@@ -3,15 +3,36 @@ local Job = require("plenary.job")
 ---@class OllamaCurl : ModelClient
 local OllamaModel = {
 	name = "ollama_curl",
-	command = "curl",
-	args = {
-		"-X",
-		"POST",
-		"http://localhost:11434/api/generate",
-		"-d",
-		"json request body",
-	},
 }
+
+local command = "curl"
+local args = {
+	"-X",
+	"POST",
+	"http://localhost:11434/api/generate",
+	"-d",
+	"json request body",
+}
+
+---returns a list of models to be used with the MistralAI API
+---@return model_map
+function OllamaModel:get_default_models()
+	local model_map = {}
+	model_map["llama2"] = { name = "llama2", client = self }
+	model_map["mistral"] = { name = "mistral", client = self }
+	model_map["dolphin-phi"] = { name = "dolphin-phi", client = self }
+	model_map["phi"] = { name = "phi", client = self }
+	model_map["neural-chat"] = { name = "neural-chat", client = self }
+	model_map["starling-lm"] = { name = "starling-lm", client = self }
+	model_map["codellama"] = { name = "codellama", client = self }
+	model_map["llama2-uncensored"] = { name = "llama2-uncensored", client = self }
+	model_map["llama2:13b"] = { name = "llama2:13b", client = self }
+	model_map["llama2:70b"] = { name = "llama2:70b", client = self }
+	model_map["orca-mini"] = { name = "orca-mini", client = self }
+	model_map["vicuna"] = { name = "vicuna", client = self }
+	model_map["llava"] = { name = "llava", client = self }
+	return model_map
+end
 
 ---@return boolean
 local function has_empty_context(context)
@@ -89,10 +110,10 @@ function OllamaModel:request(
 	if not json_body then
 		error("Could not encode table to json: " .. vim.inspect(request_table))
 	end
-	local args = insert_request_body(json_body, self.args)
+	local job_args = insert_request_body(json_body, args)
 	Job:new({
-		command = self.command,
-		args = args,
+		command = command,
+		args = job_args,
 		on_exit = on_exit_request(result_handler, error_handler, context_handler),
 	}):start()
 end
@@ -141,10 +162,10 @@ function OllamaModel:stream_request(model_name, request_msg, system_msg, context
 	if not json_body then
 		error("Could not encode table to json: " .. vim.inspect(request_table))
 	end
-	local args = insert_request_body(json_body, self.args)
+	local job_args = insert_request_body(json_body, args)
 	Job:new({
-		command = self.command,
-		args = args,
+		command = command,
+		args = job_args,
 		on_stdout = on_stdout_stream(chunk_handler, context_handler),
 	}):start()
 end
