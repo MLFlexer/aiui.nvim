@@ -18,18 +18,19 @@ This is achieved by abstracting the model-specific RPC (Remote Procedure Call) i
 ## Milestones
 
 ### Chat window
-- [ ] Having multiple chats at the same time
-- [ ] Saving and loading old chats
+- [x] Having multiple chats at the same time
+- [x] Saving and loading old chats
 - [ ] @ and/or # references to reference specific code without having to paste it into the chat
-- [ ] Use fuzzy search to create new chats with different models
-- [ ] Use fuzzy search to load chats
-- [ ] Streaming answers
+- [x] Use fuzzy search to create new chats with different models
+- [x] Use fuzzy search to load chats
+- [x] Streaming answers
 - [ ] Batching answers
-- [ ] buffer AND popup window support
+- [x] popup window chats
+- [ ] buffer window chats
 
 ### Inline interactions
 - [ ] module to abstract inline interactions
-- [ ] git-like Diff-view when modifing codeblocks within a buffer
+- [x] git-like Diff-view when modifing codeblocks within a buffer
 - [ ] Fix-bug for visual mode, function and method interactions
 - [ ] Fix-error for visual mode, function and method interactions
 - [ ] improve readability for visual mode, function and method interactions
