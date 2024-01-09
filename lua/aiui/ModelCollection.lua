@@ -79,7 +79,8 @@ end
 ---@param instance instance
 ---@param msg_lines string[]
 ---@param chunk_handler chunk_handler
-function ModelCollection:request_streamed_response(instance, msg_lines, chunk_handler)
+---@param result_handler result_handler
+function ModelCollection:request_streamed_response(instance, msg_lines, chunk_handler, result_handler)
 	local model = self.models[instance.model]
 	model.client:stream_request(
 		model.name,
@@ -88,6 +89,7 @@ function ModelCollection:request_streamed_response(instance, msg_lines, chunk_ha
 		instance.context,
 		chunk_handler,
 		function(new_context)
+			result_handler(new_context)
 			instance.context = new_context
 		end
 	)
