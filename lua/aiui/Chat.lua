@@ -1,9 +1,11 @@
 local ModelCollection = require("aiui.ModelCollection")
+local Waiter = require("aiui.Waiter")
+local waiter_namespace = vim.api.nvim_create_namespace("ChatWaiter")
 
 ---@alias WindowOpts { relative: string, row: integer, col: integer, width: integer, height: integer, border: string, style: string, title: string, title_pos: string,}
 
 ---@alias InputWindow {window_handle: integer, buffer_handle: integer, window_opts: WindowOpts, keymaps: function[]}
----@alias OutputWindow {window_handle: integer, buffer_handle: integer, window_opts: WindowOpts, keymaps: function[], is_empty: boolean}
+---@alias OutputWindow {window_handle: integer, buffer_handle: integer, window_opts: WindowOpts, keymaps: function[], is_empty: boolean, waiter: Waiter}
 
 ---@class Chat
 ---@field input InputWindow
@@ -41,6 +43,7 @@ function Chat:new(start_instance)
 		buffer_handle = output_buffer,
 		window_handle = vim.api.nvim_open_win(output_buffer, false, output_window_opts),
 		is_empty = true,
+		waiter = Waiter:new({ ".", "..", "..." }),
 	}
 	local input_window_opts = {
 		relative = "win",
@@ -167,39 +170,78 @@ function Chat:apply_autocmd()
 end
 
 function Chat:request_model()
-	-- FIX: change this function
-
 	local prompt = self:get_input_lines()
 	if #prompt == 0 then
 		return
 	end
 	self:append_output_lines(prompt, { "# You:" })
-	vim.api.nvim_buf_set_lines(Chat.input.buffer_handle, 0, -1, false, {})
+	vim.api.nvim_buf_set_lines(self.input.buffer_handle, 0, -1, false, {})
+
 	local function result_handler(result_lines)
-		self:append_output_lines(result_lines, { "# them:" })
+		self:append_output_lines(result_lines, { "# Them:" })
+		self.output.waiter:stop()
+		vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
 	end
 	local function error_handler(error)
+		self.output.waiter:stop()
+		vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
 		error("FAILED REQUEST")
 	end
 
+	self.output.waiter:start(500, function()
+		vim.schedule(function()
+			vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+			vim.api.nvim_buf_set_extmark(
+				self.output.buffer_handle,
+				waiter_namespace,
+				vim.api.nvim_buf_line_count(self.output.buffer_handle) - 1,
+				0,
+				{ virt_text = { { self.output.waiter:next_frame(), "" } }, virt_text_pos = "right_align" }
+			)
+		end)
+	end)
 	ModelCollection:request_response(self.instance, prompt, result_handler, error_handler)
 end
 
 function Chat:request_streamed_response()
-	-- FIX: change this function
-
 	local prompt = self:get_input_lines()
 	if #prompt == 0 then
 		return
 	end
 	self:append_output_lines(prompt, { "# You:" })
-	vim.api.nvim_buf_set_lines(Chat.input.buffer_handle, 0, -1, false, {})
+	vim.api.nvim_buf_set_lines(self.input.buffer_handle, 0, -1, false, {})
 	local function chunk_handler(chunk)
 		self:append_output_chunk(chunk)
+		vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+		vim.api.nvim_buf_set_extmark(
+			self.output.buffer_handle,
+			waiter_namespace,
+			vim.api.nvim_buf_line_count(self.output.buffer_handle) - 2,
+			0,
+			{ virt_text = { { self.output.waiter:next_frame(), "" } }, virt_text_pos = "right_align" }
+		)
 	end
 
 	vim.api.nvim_buf_set_lines(self.output.buffer_handle, -1, -1, false, { "# Them:", "" })
-	ModelCollection:request_streamed_response(self.instance, prompt, chunk_handler)
+
+	local function result_handler(_)
+		self.output.waiter:stop()
+		vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+	end
+
+	self.output.waiter:start(500, function()
+		vim.schedule(function()
+			vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+			vim.api.nvim_buf_set_extmark(
+				self.output.buffer_handle,
+				waiter_namespace,
+				vim.api.nvim_buf_line_count(self.output.buffer_handle) - 2,
+				0,
+				{ virt_text = { { self.output.waiter:next_frame(), "" } }, virt_text_pos = "right_align" }
+			)
+		end)
+	end)
+	ModelCollection:request_streamed_response(self.instance, prompt, chunk_handler, result_handler)
 end
 
 ---Append text to output buffer

@@ -18,7 +18,7 @@ local diff = require("aiui.diff")
 vim.api.nvim_create_user_command("DD", function()
 	local prompt = "Add comments to the following code.\n"
 	-- local prompt = "diff"
-	local instance = { name = "code commenter", model = "mistral_medium", context = {}, agent = "mistral_agent" }
+	local instance = { name = "code commenter", model = "mistral-medium", context = {}, agent = "mistral_agent" }
 	local function response_formatter(lines)
 		print(vim.inspect(lines))
 		local response = table.concat(lines, "\n")
@@ -91,6 +91,30 @@ end, {})
 
 vim.api.nvim_create_user_command("AL", function()
 	Chat:load_from_file("/home/mlflexer/.aiui/chats/test_model/testing_model/testing_instance/2023-12-31_13:32")
+end, {})
+
+local waiter = require("aiui.Waiter")
+local waiter1
+vim.api.nvim_create_user_command("ATS1", function()
+	waiter1 = waiter:new({ "x", "xx", "xxx" })
+	waiter1:start(500, function()
+		vim.print(waiter1:next_frame())
+	end)
+end, {})
+local waiter2
+vim.api.nvim_create_user_command("ATS2", function()
+	waiter2 = waiter:new({ ".", "..", "..." })
+	waiter2:start(500, function()
+		vim.print(waiter2:next_frame())
+	end)
+end, {})
+
+vim.api.nvim_create_user_command("ATE1", function()
+	waiter1:stop()
+end, {})
+
+vim.api.nvim_create_user_command("ATE2", function()
+	waiter2:stop()
 end, {})
 
 return {
