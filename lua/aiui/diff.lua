@@ -1,4 +1,7 @@
 local ModelCollection = require("aiui.ModelCollection")
+local Waiter = require("aiui.Waiter")
+local waiter_namespace = vim.api.nvim_create_namespace("DiffWaiter")
+
 local namespace = vim.api.nvim_create_namespace("aiui_diff")
 local diff = {}
 
@@ -198,8 +201,10 @@ function diff.diff_visual_lines(instance, prompt_formatter, response_formatter)
 	if selection == nil or selection.lines == 0 then
 		error("Visual line selection not found")
 	end
-
+	vim.api.nvim_buf_set_option(selection.bufnr, "modifiable", false)
 	local prompt_lines = prompt_formatter(selection.lines)
+
+	local waiter = Waiter:new({ ".", "..", "..." })
 
 	local function result_handler(response_lines)
 		response_lines = response_formatter(response_lines)
@@ -211,14 +216,30 @@ function diff.diff_visual_lines(instance, prompt_formatter, response_formatter)
 			selection.lines,
 			response_lines
 		)
+		waiter:stop()
+		vim.api.nvim_buf_clear_namespace(selection.bufnr, waiter_namespace, 0, -1)
 	end
 
 	local function error_handler()
 		vim.api.nvim_buf_set_option(selection.bufnr, "modifiable", true)
+		waiter:stop()
+		vim.api.nvim_buf_clear_namespace(selection.bufnr, waiter_namespace, 0, -1)
 		error("Could not get response for inline diff")
 	end
 
-	vim.api.nvim_buf_set_option(selection.bufnr, "modifiable", false)
+	waiter:start(500, function()
+		vim.schedule(function()
+			vim.api.nvim_buf_clear_namespace(selection.bufnr, waiter_namespace, 0, -1)
+			vim.api.nvim_buf_set_extmark(
+				selection.bufnr,
+				waiter_namespace,
+				selection.start_row - 1,
+				0,
+				{ virt_lines = { { { waiter:next_frame(), "" } } } }
+			)
+		end)
+	end)
+
 	ModelCollection:request_response(instance, prompt_lines, result_handler, error_handler)
 end
 
