@@ -150,6 +150,7 @@ function Chat:apply_default_keymaps()
 			end
 			self.output.waiter:stop()
 			vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+			self:append_output_lines({ "**CANCELLED**" })
 		end, {}),
 	}
 	local output_keymaps = { self:make_keymap("n", "<ESC>", function()
