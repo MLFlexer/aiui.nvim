@@ -17,7 +17,7 @@ end
 local diff = require("aiui.diff")
 vim.api.nvim_create_user_command("DD", function()
 	local prompt = "Add comments to the following code.\n"
-	local instance = { name = "code commenter", model = "mistral-medium", context = {}, agent = "mistral_agent" }
+	local instance = { name = "code commenter", model = "orca-mini", context = {}, agent = "mistral_agent" }
 	local function response_formatter(lines)
 		print(vim.inspect(lines))
 		local response = table.concat(lines, "\n")
@@ -38,6 +38,10 @@ end, { range = 2 })
 
 vim.api.nvim_create_user_command("DA", function()
 	diff.accept_all_changes(0)
+end, {})
+
+vim.api.nvim_create_user_command("DS", function()
+	diff.cancel_buffer_diffs(0)
 end, {})
 
 vim.api.nvim_create_user_command("AN", function()
