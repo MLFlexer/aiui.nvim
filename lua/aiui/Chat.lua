@@ -373,7 +373,13 @@ function Chat:save_current_chat()
 	local instance_file = io.open(self.instance.file .. ".json", "w")
 
 	if instance_file then
-		instance_file:write(vim.json.encode(self.instance))
+		local instance = {}
+		for key, value in pairs(self.instance) do
+			if key ~= "job" then
+				instance[key] = value
+			end
+		end
+		instance_file:write(vim.json.encode(instance))
 		instance_file:close()
 	else
 		error("Could not write save chat instance to " .. instance_file)
