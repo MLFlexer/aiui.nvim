@@ -62,14 +62,12 @@ local function on_exit_request(result_handler, error_handler, context_handler)
 					error_handler(job, return_val)
 					return
 				end
-				local response = response_table.response
-				local response_lines = {}
-				for line in response:gmatch("[^\n]+") do
-					table.insert(response_lines, line)
+				if response_table.response then
+					local response_lines = vim.split(response_table.response, "\n", { trimempty = true })
+					result_handler(response_lines)
 				end
 
-				result_handler(response_lines)
-				if response_table.context ~= nil then
+				if response_table.context then
 					context_handler(response_table.context)
 				end
 			else
@@ -87,6 +85,7 @@ end
 ---@param result_handler result_handler
 ---@param error_handler error_handler
 ---@param context_handler context_handler
+---@return Job
 function OllamaModel:request(
 	model_name,
 	request_msg,
@@ -111,11 +110,13 @@ function OllamaModel:request(
 		error("Could not encode table to json: " .. vim.inspect(request_table))
 	end
 	local job_args = insert_request_body(json_body, args)
-	Job:new({
+	local job = Job:new({
 		command = command,
 		args = job_args,
 		on_exit = on_exit_request(result_handler, error_handler, context_handler),
-	}):start()
+	})
+	job:start()
+	return job
 end
 
 ---Callback function for when there is stdout, when streaming
@@ -123,18 +124,22 @@ end
 ---@param context_handler context_handler
 ---@return fun(err: string, chunk: string)
 local function on_stdout_stream(chunk_handler, context_handler)
-	return function(_, chunk)
+	return function(_, line)
 		vim.schedule(function()
-			local chunk_table = vim.json.decode(chunk, { true, true })
-			if chunk_table == nil then
-				error("Empty json object")
-			end
+			local success, chunk_table = pcall(vim.json.decode, line, { true, true })
+			if success then
+				if chunk_table == nil then
+					error("Empty json object")
+				end
 
-			if chunk_table.response then
-				chunk_handler(chunk_table.response)
-			end
-			if chunk_table.context then
-				context_handler(chunk_table.context)
+				if chunk_table.response then
+					chunk_handler(chunk_table.response)
+				end
+				if chunk_table.context then
+					context_handler(chunk_table.context)
+				end
+			else
+				return
 			end
 		end)
 	end
@@ -147,7 +152,17 @@ end
 ---@param context message[]
 ---@param chunk_handler chunk_handler
 ---@param context_handler context_handler
-function OllamaModel:stream_request(model_name, request_msg, system_msg, context, chunk_handler, context_handler)
+---@param result_handler result_handler
+---@return Job
+function OllamaModel:stream_request(
+	model_name,
+	request_msg,
+	system_msg,
+	context,
+	chunk_handler,
+	context_handler,
+	result_handler
+)
 	local prompt = table.concat(request_msg, "\n")
 	local request_table = { model = model_name, prompt = prompt, stream = true }
 	if has_empty_context(context) then
@@ -163,11 +178,14 @@ function OllamaModel:stream_request(model_name, request_msg, system_msg, context
 		error("Could not encode table to json: " .. vim.inspect(request_table))
 	end
 	local job_args = insert_request_body(json_body, args)
-	Job:new({
+	local job = Job:new({
 		command = command,
 		args = job_args,
 		on_stdout = on_stdout_stream(chunk_handler, context_handler),
-	}):start()
+		on_exit = result_handler,
+	})
+	job:start()
+	return job
 end
 
 return OllamaModel
