@@ -144,7 +144,9 @@ function Chat:apply_default_keymaps()
 		end, {}),
 		self:make_keymap("n", "<leader>ac", function()
 			if self.instance.job then
-				self.instance.job:shutdown(130, 3)
+				-- 130 is some arbitrary value which is choosen to signify
+				-- a user has stopped the process
+				self.instance.job:shutdown(130, 1)
 			end
 			self.output.waiter:stop()
 			vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
