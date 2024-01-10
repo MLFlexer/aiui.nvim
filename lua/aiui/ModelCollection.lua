@@ -4,7 +4,7 @@
 ---key: model name, value: {name: string, client: ModelClient}
 ---@alias model_map table<string, {name: string, client: ModelClient}>
 
----@alias instance {name: string, model: string, context: any[], agent: string, file: string | nil}
+---@alias instance {name: string, model: string, context: any[], agent: string, file: string | nil, job: Job}
 ---@alias instance_list instance[]
 
 ---@class ModelCollection
@@ -62,7 +62,7 @@ end
 ---@param error_handler error_handler
 function ModelCollection:request_response(instance, msg_lines, result_handler, error_handler)
 	local model = self.models[instance.model]
-	model.client:request(
+	local job = model.client:request(
 		model.name,
 		msg_lines,
 		self.agents[instance.agent],
@@ -73,6 +73,7 @@ function ModelCollection:request_response(instance, msg_lines, result_handler, e
 			instance.context = new_context
 		end
 	)
+	instance.job = job
 end
 
 ---Request response to msg_lines for an instance
@@ -82,7 +83,7 @@ end
 ---@param result_handler result_handler
 function ModelCollection:request_streamed_response(instance, msg_lines, chunk_handler, result_handler)
 	local model = self.models[instance.model]
-	model.client:stream_request(
+	local job = model.client:stream_request(
 		model.name,
 		msg_lines,
 		self.agents[instance.agent],
@@ -93,6 +94,7 @@ function ModelCollection:request_streamed_response(instance, msg_lines, chunk_ha
 			instance.context = new_context
 		end
 	)
+	instance.job = job
 end
 
 ---@param instance instance
