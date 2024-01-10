@@ -194,6 +194,15 @@ function Chat:apply_default_keymaps()
 		self:make_keymap("n", "<leader><CR>", function()
 			self:request_model()
 		end, {}),
+		self:make_keymap("n", "<leader>pm", function()
+			require("aiui.ModelPicker"):model_picker(self)
+		end, {}),
+		self:make_keymap("n", "<leader>pl", function()
+			require("aiui.ModelPicker"):saved_picker(self)
+		end, {}),
+		self:make_keymap("n", "<leader>pi", function()
+			require("aiui.ModelPicker"):instance_picker(self)
+		end, {}),
 		self:make_keymap("n", "<leader>ac", function()
 			if self.instance.job then
 				-- 130 is some arbitrary value which is choosen to signify
@@ -364,7 +373,13 @@ function Chat:save_current_chat()
 	local instance_file = io.open(self.instance.file .. ".json", "w")
 
 	if instance_file then
-		instance_file:write(vim.json.encode(self.instance))
+		local instance = {}
+		for key, value in pairs(self.instance) do
+			if key ~= "job" then
+				instance[key] = value
+			end
+		end
+		instance_file:write(vim.json.encode(instance))
 		instance_file:close()
 	else
 		error("Could not write save chat instance to " .. instance_file)
@@ -394,6 +409,7 @@ function Chat:change_instance(instance)
 
 	-- vim.api.nvim_win_set_config(self.output.winnr, self.output.win_opts)
 	-- vim.api.nvim_win_set_config(self.input.winnr, self.input.win_opts)
+	self:show()
 	self:toggle()
 	self:toggle()
 end
