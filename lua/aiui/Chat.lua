@@ -362,7 +362,7 @@ function Chat:load_from_file(instance_path)
 	json_str = instance_file:read("*a")
 	instance_file:close()
 
-	local instance = vim.json.decode(json_str, { object = true, array = true })
+	local instance = vim.json.decode(json_str, { luanil = { object = true, array = true } })
 	if instance == nil then
 		error("Loaded instance was nil")
 	end
