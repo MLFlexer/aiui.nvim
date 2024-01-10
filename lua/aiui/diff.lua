@@ -15,7 +15,7 @@ function diff.get_visual_text_selection()
 		start_col = start_pos[3],
 		end_row = end_pos[2],
 		end_col = end_pos[3],
-		bufnr = start_pos[1],
+		bufnr = vim.api.nvim_get_current_buf(),
 	}
 
 	if result.end_col == 2147483647 then
