@@ -57,7 +57,7 @@ local function on_exit_request(result_handler, error_handler, context_handler)
 		vim.schedule(function()
 			if return_val == 0 then
 				---@type {response: string, context: number[]} | nil
-				local response_table = vim.json.decode(job:result(), { luanil = { object = true, array = true } })
+				local response_table = vim.json.decode(job:result()[1], { luanil = { object = true, array = true } })
 				if response_table == nil then
 					error_handler(job, return_val)
 					return
