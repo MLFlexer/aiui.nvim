@@ -143,7 +143,6 @@ function Chat:apply_default_keymaps()
 			self:request_model()
 		end, {}),
 		self:make_keymap("n", "<leader>ac", function()
-			print(vim.inspect(self.instance))
 			if self.instance.job then
 				self.instance.job:shutdown(130, 3)
 			end
