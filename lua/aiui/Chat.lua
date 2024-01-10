@@ -4,8 +4,8 @@ local waiter_namespace = vim.api.nvim_create_namespace("ChatWaiter")
 
 ---@alias WindowOpts { relative: string, row: integer, col: integer, width: integer, height: integer, border: string, style: string, title: string, title_pos: string,}
 
----@alias InputWindow {winnr: integer, bufnr: integer, win_opts: WindowOpts, keymaps: function[]}
----@alias OutputWindow {winnr: integer, bufnr: integer, win_opts: WindowOpts, keymaps: function[], is_empty: boolean, waiter: Waiter}
+---@alias InputWindow {winnr: integer | nil, bufnr: integer, win_opts: WindowOpts, keymaps: function[], win_opts_updater: fun(WindowOpts): WindowOpts}
+---@alias OutputWindow {winnr: integer | nil, bufnr: integer, win_opts: WindowOpts, keymaps: function[], is_empty: boolean, waiter: Waiter, chat_headers: {you: string, them: string, interrupted: string}, win_opts_updater: fun(WindowOpts): WindowOpts}
 
 ---@class Chat
 ---@field input InputWindow
@@ -15,56 +15,109 @@ local waiter_namespace = vim.api.nvim_create_namespace("ChatWaiter")
 local Chat = {}
 
 ---@param start_instance instance
-function Chat:new(start_instance)
+---@param opts nil | {input: {win_opts: WindowOpts, win_opts_updater: fun(WindowOpts): WindowOpts}, output: {win_opts: WindowOpts, waiter: Waiter, chat_headers: {you: string, them: string, interrupted: string}, win_opts_updater: fun(WindowOpts): WindowOpts}}
+---@return Chat
+function Chat:new(start_instance, opts)
 	if not next(self) then
-		return
+		return self
 	end
 	self.instance = start_instance
-	local width = math.floor(vim.o.columns / 3)
-	local output_height = math.floor(vim.o.lines * 0.8)
-	local output_win_opts = {
-		relative = "win",
-		anchor = "NE",
-		row = 0,
-		col = vim.o.columns,
-		width = width,
-		height = output_height,
-		border = "rounded",
-		style = "minimal",
-		title = start_instance.name,
-		title_pos = "center",
-		-- footer = "OUTPUT",
-		-- footer_pos = "center",
-	}
+
+	-- if opts not passed as input
+	if not opts then
+		opts = { input = {}, output = {} }
+	end
+
+	local output_win_opts_updater = opts.output.win_opts_updater
+	if not output_win_opts_updater then
+		output_win_opts_updater = function(win_opts)
+			win_opts.row = 0
+			win_opts.col = vim.o.columns
+			win_opts.width = math.floor(vim.o.columns / 3)
+			win_opts.height = math.floor(vim.o.lines * 0.8)
+			return win_opts
+		end
+	end
+
+	local output_win_opts = opts.output.win_opts
+	if not output_win_opts then
+		output_win_opts = {
+			relative = "win",
+			anchor = "NE",
+			row = 0,
+			col = 0,
+			width = 0,
+			height = 0,
+			border = "rounded",
+			style = "minimal",
+			title = start_instance.name,
+			title_pos = "center",
+			-- footer = "OUTPUT",
+			-- footer_pos = "center",
+		}
+	end
+	output_win_opts = output_win_opts_updater(output_win_opts)
+
+	local waiter = opts.output.waiter
+	if not waiter then
+		waiter = Waiter:new({ ".", "..", "..." })
+	end
+
+	local output_chat_headers = opts.output.chat_headers
+	if not output_chat_headers then
+		output_chat_headers = { you = "# You:", them = "# Them:", interrupted = "**CANCELLED**" }
+	end
+
 	local output_buffer = vim.api.nvim_create_buf(false, false)
 	vim.api.nvim_buf_set_option(output_buffer, "filetype", "markdown")
 	self.output = {
 		win_opts = output_win_opts,
 		bufnr = output_buffer,
-		winnr = vim.api.nvim_open_win(output_buffer, false, output_win_opts),
+		winnr = nil,
 		is_empty = true,
-		waiter = Waiter:new({ ".", "..", "..." }),
+		waiter = waiter,
+		win_opts_updater = output_win_opts_updater,
+		chat_headers = output_chat_headers,
 	}
-	local input_win_opts = {
-		relative = "win",
-		anchor = "SE",
-		row = vim.o.lines,
-		col = vim.o.columns,
-		width = width,
-		height = vim.o.lines - output_height - 4,
-		border = "rounded",
-		style = "minimal",
-		title = "INPUT",
-		title_pos = "center",
-	}
+
+	local input_win_opts_updater = opts.input.win_opts_updater
+	if not input_win_opts_updater then
+		input_win_opts_updater = function(win_opts)
+			win_opts.row = vim.o.lines
+			win_opts.col = vim.o.columns
+			win_opts.width = self.output.win_opts.width
+			win_opts.height = vim.o.lines - self.output.win_opts.height - 4
+			return win_opts
+		end
+	end
+
+	local input_win_opts = opts.input.win_opts
+	if not input_win_opts then
+		input_win_opts = {
+			relative = "win",
+			anchor = "SE",
+			row = 0,
+			col = 0,
+			width = 0,
+			height = 0,
+			border = "rounded",
+			style = "minimal",
+			title = "INPUT",
+			title_pos = "center",
+		}
+	end
+	input_win_opts = input_win_opts_updater(input_win_opts)
+
 	local input_buffer = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_option(input_buffer, "filetype", "markdown")
 	self.input = {
 		win_opts = input_win_opts,
 		bufnr = input_buffer,
-		winnr = vim.api.nvim_open_win(input_buffer, true, input_win_opts),
+		winnr = nil,
+		win_opts_updater = input_win_opts_updater,
 	}
-	self.is_hidden = false
+	self.is_hidden = true
+	return self
 end
 
 function Chat:show()
@@ -73,9 +126,8 @@ function Chat:show()
 	end
 	self.is_hidden = false
 
-	local output_height = math.floor(vim.o.lines * 0.8)
-	self.output.win_opts.height = output_height
-	self.input.win_opts.height = vim.o.lines - output_height - 4
+	self.output.win_opts = self.output.win_opts_updater(self.output.win_opts)
+	self.input.win_opts = self.input.win_opts_updater(self.input.win_opts)
 
 	-- output has to be shown before input, otherwise the placement will be off
 	self.output.winnr = vim.api.nvim_open_win(self.output.bufnr, false, self.output.win_opts)
@@ -83,7 +135,7 @@ function Chat:show()
 end
 
 function Chat:hide()
-	if self.is_hidden then
+	if self.is_hidden or self.output.winnr == nil then
 		return
 	end
 	self.is_hidden = true
@@ -150,7 +202,7 @@ function Chat:apply_default_keymaps()
 			end
 			self.output.waiter:stop()
 			vim.api.nvim_buf_clear_namespace(self.output.bufnr, waiter_namespace, 0, -1)
-			self:append_output_lines({ "**CANCELLED**" })
+			self:append_output_lines({ self.output.chat_headers.interrupted })
 		end, {}),
 	}
 	local output_keymaps = { self:make_keymap("n", "<ESC>", function()
@@ -184,11 +236,11 @@ function Chat:request_model()
 	if #prompt == 0 then
 		return
 	end
-	self:append_output_lines(prompt, { "# You:" })
+	self:append_output_lines(prompt, { self.output.chat_headers.you })
 	vim.api.nvim_buf_set_lines(self.input.bufnr, 0, -1, false, {})
 
 	local function result_handler(result_lines)
-		self:append_output_lines(result_lines, { "# Them:" })
+		self:append_output_lines(result_lines, { self.output.chat_headers.them })
 		self.output.waiter:stop()
 		vim.api.nvim_buf_clear_namespace(self.output.bufnr, waiter_namespace, 0, -1)
 	end
@@ -218,7 +270,7 @@ function Chat:request_streamed_response()
 	if #prompt == 0 then
 		return
 	end
-	self:append_output_lines(prompt, { "# You:" })
+	self:append_output_lines(prompt, { self.output.chat_headers.you })
 	vim.api.nvim_buf_set_lines(self.input.bufnr, 0, -1, false, {})
 	local function chunk_handler(chunk)
 		self:append_output_chunk(chunk)
@@ -232,7 +284,7 @@ function Chat:request_streamed_response()
 		)
 	end
 
-	vim.api.nvim_buf_set_lines(self.output.bufnr, -1, -1, false, { "# Them:", "" })
+	vim.api.nvim_buf_set_lines(self.output.bufnr, -1, -1, false, { self.output.chat_headers.them, "" })
 
 	local function result_handler(_)
 		vim.schedule(function()
