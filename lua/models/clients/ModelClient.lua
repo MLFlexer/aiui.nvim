@@ -27,3 +27,4 @@
 ---@field maximum_results? number Stop processing results after this number
 ---@field writer? Job|table|string Job that writes to stdin of this job.
 ---@field result fun(self)
+---@field shutdown fun(self, integer, integer)
