@@ -4,8 +4,8 @@ local waiter_namespace = vim.api.nvim_create_namespace("ChatWaiter")
 
 ---@alias WindowOpts { relative: string, row: integer, col: integer, width: integer, height: integer, border: string, style: string, title: string, title_pos: string,}
 
----@alias InputWindow {window_handle: integer, buffer_handle: integer, window_opts: WindowOpts, keymaps: function[]}
----@alias OutputWindow {window_handle: integer, buffer_handle: integer, window_opts: WindowOpts, keymaps: function[], is_empty: boolean, waiter: Waiter}
+---@alias InputWindow {winnr: integer, bufnr: integer, win_opts: WindowOpts, keymaps: function[]}
+---@alias OutputWindow {winnr: integer, bufnr: integer, win_opts: WindowOpts, keymaps: function[], is_empty: boolean, waiter: Waiter}
 
 ---@class Chat
 ---@field input InputWindow
@@ -22,7 +22,7 @@ function Chat:new(start_instance)
 	self.instance = start_instance
 	local width = math.floor(vim.o.columns / 3)
 	local output_height = math.floor(vim.o.lines * 0.8)
-	local output_window_opts = {
+	local output_win_opts = {
 		relative = "win",
 		anchor = "NE",
 		row = 0,
@@ -39,13 +39,13 @@ function Chat:new(start_instance)
 	local output_buffer = vim.api.nvim_create_buf(false, false)
 	vim.api.nvim_buf_set_option(output_buffer, "filetype", "markdown")
 	self.output = {
-		window_opts = output_window_opts,
-		buffer_handle = output_buffer,
-		window_handle = vim.api.nvim_open_win(output_buffer, false, output_window_opts),
+		win_opts = output_win_opts,
+		bufnr = output_buffer,
+		winnr = vim.api.nvim_open_win(output_buffer, false, output_win_opts),
 		is_empty = true,
 		waiter = Waiter:new({ ".", "..", "..." }),
 	}
-	local input_window_opts = {
+	local input_win_opts = {
 		relative = "win",
 		anchor = "SE",
 		row = vim.o.lines,
@@ -60,9 +60,9 @@ function Chat:new(start_instance)
 	local input_buffer = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_option(input_buffer, "filetype", "markdown")
 	self.input = {
-		window_opts = input_window_opts,
-		buffer_handle = input_buffer,
-		window_handle = vim.api.nvim_open_win(input_buffer, true, input_window_opts),
+		win_opts = input_win_opts,
+		bufnr = input_buffer,
+		winnr = vim.api.nvim_open_win(input_buffer, true, input_win_opts),
 	}
 	self.is_hidden = false
 end
@@ -74,12 +74,12 @@ function Chat:show()
 	self.is_hidden = false
 
 	local output_height = math.floor(vim.o.lines * 0.8)
-	self.output.window_opts.height = output_height
-	self.input.window_opts.height = vim.o.lines - output_height - 4
+	self.output.win_opts.height = output_height
+	self.input.win_opts.height = vim.o.lines - output_height - 4
 
 	-- output has to be shown before input, otherwise the placement will be off
-	self.output.window_handle = vim.api.nvim_open_win(self.output.buffer_handle, false, self.output.window_opts)
-	self.input.window_handle = vim.api.nvim_open_win(self.input.buffer_handle, true, self.input.window_opts)
+	self.output.winnr = vim.api.nvim_open_win(self.output.bufnr, false, self.output.win_opts)
+	self.input.winnr = vim.api.nvim_open_win(self.input.bufnr, true, self.input.win_opts)
 end
 
 function Chat:hide()
@@ -87,8 +87,8 @@ function Chat:hide()
 		return
 	end
 	self.is_hidden = true
-	vim.api.nvim_win_hide(self.output.window_handle)
-	vim.api.nvim_win_hide(self.input.window_handle)
+	vim.api.nvim_win_hide(self.output.winnr)
+	vim.api.nvim_win_hide(self.input.winnr)
 end
 
 function Chat:toggle()
@@ -110,10 +110,10 @@ end
 
 function Chat:apply_keymaps()
 	for _, keymap in ipairs(self.input.keymaps) do
-		keymap(self.input.buffer_handle)
+		keymap(self.input.bufnr)
 	end
 	for _, keymap in ipairs(self.output.keymaps) do
-		keymap(self.output.buffer_handle)
+		keymap(self.output.bufnr)
 	end
 end
 
@@ -149,7 +149,7 @@ function Chat:apply_default_keymaps()
 				self.instance.job:shutdown(130, 1)
 			end
 			self.output.waiter:stop()
-			vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+			vim.api.nvim_buf_clear_namespace(self.output.bufnr, waiter_namespace, 0, -1)
 			self:append_output_lines({ "**CANCELLED**" })
 		end, {}),
 	}
@@ -164,14 +164,14 @@ end
 ---See https://neovim.io/doc/user/autocmd.html#autocmd-events
 function Chat:apply_autocmd()
 	vim.api.nvim_create_autocmd({ "BufDelete", "QuitPre", "BufUnload" }, {
-		buffer = self.input.buffer_handle,
+		buffer = self.input.bufnr,
 		callback = function(_)
 			self:save_current_chat()
 			self:hide()
 		end,
 	})
 	vim.api.nvim_create_autocmd({ "BufDelete", "QuitPre", "BufUnload" }, {
-		buffer = self.output.buffer_handle,
+		buffer = self.output.bufnr,
 		callback = function(_)
 			self:save_current_chat()
 			self:hide()
@@ -185,26 +185,26 @@ function Chat:request_model()
 		return
 	end
 	self:append_output_lines(prompt, { "# You:" })
-	vim.api.nvim_buf_set_lines(self.input.buffer_handle, 0, -1, false, {})
+	vim.api.nvim_buf_set_lines(self.input.bufnr, 0, -1, false, {})
 
 	local function result_handler(result_lines)
 		self:append_output_lines(result_lines, { "# Them:" })
 		self.output.waiter:stop()
-		vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+		vim.api.nvim_buf_clear_namespace(self.output.bufnr, waiter_namespace, 0, -1)
 	end
 	local function error_handler(err)
 		self.output.waiter:stop()
-		vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+		vim.api.nvim_buf_clear_namespace(self.output.bufnr, waiter_namespace, 0, -1)
 		error("FAILED REQUEST")
 	end
 
 	self.output.waiter:start(500, function()
 		vim.schedule(function()
-			vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+			vim.api.nvim_buf_clear_namespace(self.output.bufnr, waiter_namespace, 0, -1)
 			vim.api.nvim_buf_set_extmark(
-				self.output.buffer_handle,
+				self.output.bufnr,
 				waiter_namespace,
-				vim.api.nvim_buf_line_count(self.output.buffer_handle) - 1,
+				vim.api.nvim_buf_line_count(self.output.bufnr) - 1,
 				0,
 				{ virt_text = { { self.output.waiter:next_frame(), "" } }, virt_text_pos = "right_align" }
 			)
@@ -219,35 +219,35 @@ function Chat:request_streamed_response()
 		return
 	end
 	self:append_output_lines(prompt, { "# You:" })
-	vim.api.nvim_buf_set_lines(self.input.buffer_handle, 0, -1, false, {})
+	vim.api.nvim_buf_set_lines(self.input.bufnr, 0, -1, false, {})
 	local function chunk_handler(chunk)
 		self:append_output_chunk(chunk)
-		vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+		vim.api.nvim_buf_clear_namespace(self.output.bufnr, waiter_namespace, 0, -1)
 		vim.api.nvim_buf_set_extmark(
-			self.output.buffer_handle,
+			self.output.bufnr,
 			waiter_namespace,
-			vim.api.nvim_buf_line_count(self.output.buffer_handle) - 2,
+			vim.api.nvim_buf_line_count(self.output.bufnr) - 2,
 			0,
 			{ virt_text = { { self.output.waiter:next_frame(), "" } }, virt_text_pos = "right_align" }
 		)
 	end
 
-	vim.api.nvim_buf_set_lines(self.output.buffer_handle, -1, -1, false, { "# Them:", "" })
+	vim.api.nvim_buf_set_lines(self.output.bufnr, -1, -1, false, { "# Them:", "" })
 
 	local function result_handler(_)
 		vim.schedule(function()
 			self.output.waiter:stop()
-			vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+			vim.api.nvim_buf_clear_namespace(self.output.bufnr, waiter_namespace, 0, -1)
 		end)
 	end
 
 	self.output.waiter:start(500, function()
 		vim.schedule(function()
-			vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+			vim.api.nvim_buf_clear_namespace(self.output.bufnr, waiter_namespace, 0, -1)
 			vim.api.nvim_buf_set_extmark(
-				self.output.buffer_handle,
+				self.output.bufnr,
 				waiter_namespace,
-				vim.api.nvim_buf_line_count(self.output.buffer_handle) - 2,
+				vim.api.nvim_buf_line_count(self.output.bufnr) - 2,
 				0,
 				{ virt_text = { { self.output.waiter:next_frame(), "" } }, virt_text_pos = "right_align" }
 			)
@@ -260,21 +260,21 @@ end
 ---@param chunk string
 function Chat:append_output_chunk(chunk)
 	local lines = vim.split(chunk, "\n")
-	local row = vim.api.nvim_buf_line_count(self.output.buffer_handle) - 1
-	local current_line = vim.api.nvim_buf_get_lines(self.output.buffer_handle, row, row + 1, false)
+	local row = vim.api.nvim_buf_line_count(self.output.bufnr) - 1
+	local current_line = vim.api.nvim_buf_get_lines(self.output.bufnr, row, row + 1, false)
 	local col = 0
 
 	if #current_line > 0 then
 		col = string.len(current_line[1])
-		vim.api.nvim_buf_set_text(self.output.buffer_handle, row, col, row, col, lines)
+		vim.api.nvim_buf_set_text(self.output.bufnr, row, col, row, col, lines)
 	else
-		vim.api.nvim_buf_set_text(self.output.buffer_handle, row, col, row, col, lines)
+		vim.api.nvim_buf_set_text(self.output.bufnr, row, col, row, col, lines)
 	end
-	vim.api.nvim_win_set_cursor(self.output.window_handle, { row + 1, col })
+	vim.api.nvim_win_set_cursor(self.output.winnr, { row + 1, col })
 end
 
 function Chat:get_input_lines()
-	return vim.api.nvim_buf_get_lines(self.input.buffer_handle, 0, -1, false)
+	return vim.api.nvim_buf_get_lines(self.input.bufnr, 0, -1, false)
 end
 
 ---Append lines of output buffer
@@ -287,14 +287,11 @@ function Chat:append_output_lines(lines, prefix_lines)
 		self.output.is_empty = false
 	end
 	if prefix_lines ~= nil then
-		vim.api.nvim_buf_set_lines(self.output.buffer_handle, starting_line, -1, false, prefix_lines)
+		vim.api.nvim_buf_set_lines(self.output.bufnr, starting_line, -1, false, prefix_lines)
 		starting_line = -1
 	end
-	vim.api.nvim_buf_set_lines(self.output.buffer_handle, starting_line, -1, false, lines)
-	vim.api.nvim_win_set_cursor(
-		self.output.window_handle,
-		{ vim.api.nvim_buf_line_count(self.output.buffer_handle), 0 }
-	)
+	vim.api.nvim_buf_set_lines(self.output.bufnr, starting_line, -1, false, lines)
+	vim.api.nvim_win_set_cursor(self.output.winnr, { vim.api.nvim_buf_line_count(self.output.bufnr), 0 })
 end
 
 function Chat:save_current_chat()
@@ -308,7 +305,7 @@ function Chat:save_current_chat()
 		self.instance.file = string.format("%s/%s", file_path, formatted_time)
 	end
 
-	vim.api.nvim_buf_call(self.output.buffer_handle, function()
+	vim.api.nvim_buf_call(self.output.bufnr, function()
 		vim.api.nvim_command(string.format("silent write! ++p %s.md", self.instance.file))
 	end)
 
@@ -331,20 +328,20 @@ function Chat:change_instance(instance)
 	if instance.file ~= nil then
 		file_content = vim.fn.readfile(instance.file .. ".md")
 	end
-	vim.api.nvim_buf_set_lines(self.input.buffer_handle, 0, -1, false, {})
-	vim.api.nvim_buf_set_lines(self.output.buffer_handle, 0, -1, false, file_content)
+	vim.api.nvim_buf_set_lines(self.input.bufnr, 0, -1, false, {})
+	vim.api.nvim_buf_set_lines(self.output.bufnr, 0, -1, false, file_content)
 	if #file_content == 0 then
 		self.output.is_empty = true
 	else
 		self.output.is_empty = false
 	end
 
-	self.output.window_opts.title = instance.name
+	self.output.win_opts.title = instance.name
 
 	-- FIX: Why does the placement only work with 2 * toggle and not nvim_win_set_config???
 
-	-- vim.api.nvim_win_set_config(self.output.window_handle, self.output.window_opts)
-	-- vim.api.nvim_win_set_config(self.input.window_handle, self.input.window_opts)
+	-- vim.api.nvim_win_set_config(self.output.winnr, self.output.win_opts)
+	-- vim.api.nvim_win_set_config(self.input.winnr, self.input.win_opts)
 	self:toggle()
 	self:toggle()
 end
