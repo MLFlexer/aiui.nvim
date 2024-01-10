@@ -60,7 +60,7 @@ local function on_exit_request(result_handler, error_handler, context_handler, c
 		elseif return_val == 0 then
 			vim.schedule(function()
 				---@type {error: nil | string, choices: {message: message}} | nil
-				local response_table = vim.fn.json_decode(job:result())
+				local response_table = vim.json.decode(job:result(), { luanil = { object = true, array = true } })
 				if response_table == nil then
 					error_handler(job, return_val)
 					return
@@ -136,7 +136,7 @@ local function on_stdout_stream(chunk_handler)
 		else
 			vim.schedule(function()
 				local json_chunk = chunk:gsub("data: ", "")
-				local chunk_table = vim.json.decode(json_chunk, { true, true })
+				local chunk_table = vim.json.decode(json_chunk, { luanil = { object = true, array = true } })
 				if chunk_table == nil then
 					error("Empty json object")
 				end
@@ -157,7 +157,7 @@ local function exstract_message(lines)
 	for _, entry in ipairs(lines) do
 		if entry ~= "" and entry ~= "data: [DONE]" then
 			local json_chunk = entry:gsub("data: ", "")
-			local chunk_table = vim.json.decode(json_chunk, { true, true })
+			local chunk_table = vim.json.decode(json_chunk, { luanil = { object = true, array = true } })
 			if chunk_table == nil then
 				error("Empty json object")
 			end

@@ -57,7 +57,7 @@ local function on_exit_request(result_handler, error_handler, context_handler)
 		vim.schedule(function()
 			if return_val == 0 then
 				---@type {response: string, context: number[]} | nil
-				local response_table = vim.fn.json_decode(job:result())
+				local response_table = vim.json.decode(job:result(), { luanil = { object = true, array = true } })
 				if response_table == nil then
 					error_handler(job, return_val)
 					return
@@ -126,7 +126,7 @@ end
 local function on_stdout_stream(chunk_handler, context_handler)
 	return function(_, line)
 		vim.schedule(function()
-			local success, chunk_table = pcall(vim.json.decode, line, { true, true })
+			local success, chunk_table = pcall(vim.json.decode, line, { luanil = { object = true, array = true } })
 			if success then
 				if chunk_table == nil then
 					error("Empty json object")
