@@ -17,7 +17,6 @@ end
 local diff = require("aiui.diff")
 vim.api.nvim_create_user_command("DD", function()
 	local prompt = "Add comments to the following code.\n"
-	-- local prompt = "diff"
 	local instance = { name = "code commenter", model = "mistral-medium", context = {}, agent = "mistral_agent" }
 	local function response_formatter(lines)
 		print(vim.inspect(lines))
@@ -34,7 +33,6 @@ vim.api.nvim_create_user_command("DD", function()
 	local function prompt_formatter(lines)
 		return { prompt, vim.fn.join(lines, "\n") }
 	end
-	-- diff.diff_prompt(prompt, instance, result_formatter)
 	diff.diff_visual_lines(instance, prompt_formatter, response_formatter)
 end, { range = 2 })
 
