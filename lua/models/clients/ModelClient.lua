@@ -6,8 +6,8 @@
 ---@class ModelClient
 ---@field name string
 ---@field context_handler fun(new_context: any, old_context: any): any
----@field request fun(self: ModelClient, model_name: string, request_msg: string[], system_msg: string, context: any, result_handler: result_handler, error_handler: error_handler, context_handler: context_handler)
----@field stream_request fun(self: ModelClient, model_name: string, request_msg: string[], system_msg: string, context: any, chunk_handler: chunk_handler, context_handler: context_handler)
+---@field request fun(self: ModelClient, model_name: string, request_msg: string[], system_msg: string, context: any, result_handler: result_handler, error_handler: error_handler, context_handler: context_handler): Job
+---@field stream_request fun(self: ModelClient, model_name: string, request_msg: string[], system_msg: string, context: any, chunk_handler: chunk_handler, context_handler: context_handler): Job
 
 ---from plenary
 ---@class Job
@@ -27,3 +27,4 @@
 ---@field maximum_results? number Stop processing results after this number
 ---@field writer? Job|table|string Job that writes to stdin of this job.
 ---@field result fun(self)
+---@field shutdown fun(self, integer, integer)

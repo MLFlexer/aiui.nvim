@@ -142,6 +142,16 @@ function Chat:apply_default_keymaps()
 		self:make_keymap("n", "<leader><CR>", function()
 			self:request_model()
 		end, {}),
+		self:make_keymap("n", "<leader>ac", function()
+			if self.instance.job then
+				-- 130 is some arbitrary value which is choosen to signify
+				-- a user has stopped the process
+				self.instance.job:shutdown(130, 1)
+			end
+			self.output.waiter:stop()
+			vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+			self:append_output_lines({ "**CANCELLED**" })
+		end, {}),
 	}
 	local output_keymaps = { self:make_keymap("n", "<ESC>", function()
 		self:toggle()
@@ -182,7 +192,7 @@ function Chat:request_model()
 		self.output.waiter:stop()
 		vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
 	end
-	local function error_handler(error)
+	local function error_handler(err)
 		self.output.waiter:stop()
 		vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
 		error("FAILED REQUEST")
@@ -225,8 +235,10 @@ function Chat:request_streamed_response()
 	vim.api.nvim_buf_set_lines(self.output.buffer_handle, -1, -1, false, { "# Them:", "" })
 
 	local function result_handler(_)
-		self.output.waiter:stop()
-		vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+		vim.schedule(function()
+			self.output.waiter:stop()
+			vim.api.nvim_buf_clear_namespace(self.output.buffer_handle, waiter_namespace, 0, -1)
+		end)
 	end
 
 	self.output.waiter:start(500, function()

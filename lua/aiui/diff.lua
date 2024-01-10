@@ -5,6 +5,9 @@ local waiter_namespace = vim.api.nvim_create_namespace("DiffWaiter")
 local namespace = vim.api.nvim_create_namespace("aiui_diff")
 local diff = {}
 
+---@type table<integer, instance>
+local processMap = {}
+
 ---returns a table of lines, position and buffer number
 ---@return {lines: string[], start_row: integer, start_col: integer, end_col: integer, end_row: integer, bufnr: integer}
 function diff.get_visual_text_selection()
@@ -15,7 +18,7 @@ function diff.get_visual_text_selection()
 		start_col = start_pos[3],
 		end_row = end_pos[2],
 		end_col = end_pos[3],
-		bufnr = start_pos[1],
+		bufnr = vim.api.nvim_get_current_buf(),
 	}
 
 	if result.end_col == 2147483647 then
@@ -42,7 +45,7 @@ function diff.get_visual_line_selection()
 	local result = {
 		start_row = start_pos[2],
 		end_row = end_pos[2],
-		bufnr = start_pos[1],
+		bufnr = vim.api.nvim_get_current_buf(),
 	}
 
 	result.lines = vim.api.nvim_buf_get_lines(result.bufnr, result.start_row - 1, result.end_row, false)
@@ -241,6 +244,26 @@ function diff.diff_visual_lines(instance, prompt_formatter, response_formatter)
 	end)
 
 	ModelCollection:request_response(instance, prompt_lines, result_handler, error_handler)
+	processMap[selection.bufnr] = instance
+end
+
+---Stop process associated with input buffer number
+---If bufnr is 0 then it will stop a job in the current buffer
+---@param bufnr integer
+function diff.cancel_buffer_diffs(bufnr)
+	if bufnr == 0 then
+		bufnr = vim.api.nvim_get_current_buf()
+	end
+	local instance = processMap[bufnr]
+	if instance then
+		if instance.job then
+			instance.job:shutdown(130, 1)
+		else
+			error("No job is processing buffer number: " .. bufnr)
+		end
+	else
+		error("No instance is processing buffer number: " .. bufnr)
+	end
 end
 
 return diff

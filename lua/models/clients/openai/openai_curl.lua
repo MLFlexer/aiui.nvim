@@ -58,29 +58,29 @@ end
 ---@return fun(job: Job, return_value: integer)
 local function on_exit_request(result_handler, error_handler, context_handler, context)
 	return function(job, return_val)
-		vim.schedule(function()
-			if return_val == 0 then
+		if return_val == 130 then
+			return
+		elseif return_val == 0 then
+			vim.schedule(function()
 				---@type {error: nil | string, choices: {message: message}} | nil
 				local response_table = vim.fn.json_decode(job:result())
 				if response_table == nil then
 					error_handler(job, return_val)
 					return
 				elseif response_table.error == nil then
-					local response_content = response_table.choices[1].message.content
-					local content_lines = {}
-					for line in response_content:gmatch("[^\n]+") do
-						table.insert(content_lines, line)
-					end
+					local content_lines =
+						vim.split(response_table.choices[1].message.content, "\n", { trimempty = true })
 					result_handler(content_lines)
+
 					table.insert(context, response_table.choices[1].message)
 					context_handler(context)
 				else
 					error_handler(job, return_val)
 				end
-			else
-				error_handler(job, return_val)
-			end
-		end)
+			end)
+		else
+			error_handler(job, return_val)
+		end
 	end
 end
 
@@ -92,6 +92,7 @@ end
 ---@param result_handler result_handler
 ---@param error_handler error_handler
 ---@param context_handler context_handler
+---@return Job
 function OpenAIModel:request(
 	model_name,
 	request_msg,
@@ -118,11 +119,13 @@ function OpenAIModel:request(
 		error("Could not encode table to json: " .. vim.inspect(request_table))
 	end
 	local job_args = insert_request_body(json_body, args)
-	Job:new({
+	local job = Job:new({
 		command = command,
 		args = job_args,
 		on_exit = on_exit_request(result_handler, error_handler, context_handler, request_table.messages),
-	}):start()
+	})
+	job:start()
+	return job
 end
 
 ---Callback function for when there is stdout, when streaming
@@ -142,14 +145,13 @@ local function on_stdout_stream(chunk_handler)
 					error("Empty json object")
 				end
 
-				if chunk_table.choices[1].delta == nil then
-					return
-				end
-				if chunk_table.choices[1].delta.content then
-					local content = chunk_table.choices[1].delta.content
-					chunk_handler(content)
-				elseif chunk_table.choices[1].delta.role ~= nil then
-					return
+				if chunk_table.choices[1].delta then
+					if chunk_table.choices[1].delta.content then
+						local content = chunk_table.choices[1].delta.content
+						chunk_handler(content)
+					elseif chunk_table.choices[1].delta.role then
+						return
+					end
 				end
 			end)
 		end
@@ -170,7 +172,7 @@ local function exstract_message(lines)
 				local content = chunk_table.choices[1].delta.content
 				table.insert(message.content_list, content)
 			end
-			if chunk_table.choices[1].delta.role ~= nil then
+			if chunk_table.choices[1].delta.role then
 				message.role = chunk_table.choices[1].delta.role
 			end
 		end
@@ -199,6 +201,7 @@ end
 ---@param context message[]
 ---@param chunk_handler chunk_handler
 ---@param context_handler context_handler
+---@return job
 function OpenAIModel:stream_request(model_name, request_msg, system_msg, context, chunk_handler, context_handler)
 	local prompt = table.concat(request_msg, "\n")
 	local request_table = { model = model_name, messages = {}, stream = true }
@@ -217,12 +220,14 @@ function OpenAIModel:stream_request(model_name, request_msg, system_msg, context
 		error("Could not encode table to json: " .. vim.inspect(request_table))
 	end
 	local job_args = insert_request_body(json_body, args)
-	Job:new({
+	local job = Job:new({
 		command = command,
 		args = job_args,
 		on_stdout = on_stdout_stream(chunk_handler),
 		on_exit = on_exit_stream(context_handler, request_table.messages),
-	}):start()
+	})
+	job:start()
+	return job
 end
 
 return OpenAIModel
