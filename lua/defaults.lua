@@ -3,16 +3,8 @@
 local defaults = {}
 
 function defaults.decrypt_file_with_gpg(file_path)
-	local command = string.format("gpg --decrypt %s", file_path)
-	local handle = io.popen(command)
-	if handle then
-		local decrypted_text = handle:read("*a")
-		handle:close()
-		decrypted_text = decrypted_text:gsub("\n$", "")
-		return decrypted_text
-	else
-		error("Unable to run command: " .. command)
-	end
+	local decrypted_text = vim.fn.system({ "gpg", "--decrypt", "--quiet", file_path })
+	return decrypted_text
 end
 
 function defaults.initialize()
