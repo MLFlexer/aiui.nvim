@@ -165,7 +165,8 @@ local function exstract_message(lines)
 			if chunk_table.choices[1].delta.content then
 				local content = chunk_table.choices[1].delta.content
 				table.insert(message.content_list, content)
-			elseif chunk_table.choices[1].delta.role then
+			end
+			if chunk_table.choices[1].delta.role then
 				message.role = chunk_table.choices[1].delta.role
 			end
 		end
