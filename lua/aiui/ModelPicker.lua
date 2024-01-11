@@ -114,7 +114,16 @@ end
 ---@param opts any
 function ModelPicker:saved_picker(chat, opts)
 	opts = opts or {}
-	local find_command = { "fd", "--type", "f", "--color", "never", "-e", "md", ".", ModelCollection.chat_dir }
+	opts.entry_maker = function(path)
+		return {
+			value = path,
+			-- remove the common prefix path from all displayed paths
+			display = string.sub(path, #ModelCollection.chat_dir + 2),
+			ordinal = path,
+		}
+	end
+	local find_command =
+		{ "fd", "--type", "f", "--color", "never", "-e", "md", ".", ModelCollection.chat_dir, "|", "tac" }
 	pickers
 		.new(opts, {
 			prompt_title = "Pick a saved chat to continue",
