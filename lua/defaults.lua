@@ -4,7 +4,8 @@ local defaults = {}
 
 function defaults.decrypt_file_with_gpg(file_path)
 	local decrypted_text = vim.fn.system({ "gpg", "--decrypt", "--quiet", file_path })
-	return decrypted_text
+	-- remove the \n from the end of the string
+	return string.sub(decrypted_text, 1, #decrypted_text - 1)
 end
 
 function defaults.initialize()
