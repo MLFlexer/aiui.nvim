@@ -9,22 +9,27 @@ function defaults.decrypt_file_with_gpg(file_path)
 end
 
 function defaults.initialize()
+	-- adds Ollama
 	local ModelCollection = require("aiui.ModelCollection")
 	local ollama_client = require("models.clients.ollama.ollama_curl")
 	ModelCollection:add_models(ollama_client:get_default_models())
 
+	-- add MistralAI
 	local mistral_client = require("models.clients.mistral.mistral_curl")
 	mistral_client:set_api_key(defaults.decrypt_file_with_gpg("/home/mlflexer/.secrets/mistral.txt.gpg"))
 	ModelCollection:add_models(mistral_client:get_default_models())
 
+	-- add OpenAI
 	local openai_client = require("models.clients.openai.openai_curl")
 	openai_client:set_api_key(defaults.decrypt_file_with_gpg("/home/mlflexer/.secrets/open_ai.txt.gpg"))
 	ModelCollection:add_models(openai_client:get_default_models())
 
+	-- Add any agents you like
 	ModelCollection:add_agents({
 		default_agent = "You are a chatbot, answer short and concise.",
 	})
 
+	-- Initialize the Chat and set default keybinds and autocmds
 	local Chat = require("aiui.Chat")
 	Chat:new({ name = "Mistral Tiny", model = "mistral-tiny", context = {}, agent = "default_agent" })
 	Chat:apply_default_keymaps()

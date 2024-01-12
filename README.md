@@ -1,36 +1,80 @@
 # aiui.nvim
+> A unified set of modules to interact with different LLM providers.
 
-## Why Choose aiui?
-### TLDR
+## Why aiui.nvim?
+Unify your development experience across different LLM providers with aiui.nvim's adaptable UI modules, allowing for easy model switching without changing your workflow.
 
-aiui.nvim offers a unified set of UI modules for interacting with various LLM backends, whether proprietary or open parameter. Which enables switching models without swtiching tools.
+## Features
 
-### Non-TLDR
+- **Unified LLM Interface**: Swap LLM providers on-the-fly while keeping your workflow consistent.
+- **In-Editor Chat**: Engage with LLMs in a familiar chat interface inside neovim.
+  - _**Demo Link**_
+- **Single buffer Code Difference**: Visualize LLM-suggested code changes directly within your buffer, akin to a git diff.
+  - _**Demo Link**_
+- **Chat Selection Convenience**: Fuzzy search-enabled model and instance switching or resuming past chats.
+  - _**Demo Link**_
+- **Conversations as files**: Store chat logs as readable markdown and session data as json for external access.
 
-In today's landscape, numerous LLMs are available for use, ranging from proprietary models like OpenAI's GPT4 to open parameter models like Mistral7B, which can be self-hosted.
+*Checkout the [roadmap](#Roadmap) for upcomming features*
 
-Despite the similarities in how users interact with these models, the interfaces to access them differ significantly.
+## Getting Started
+Assuming you are using [Lazy.nvim](https://github.com/folke/lazy.nvim)
+```lua
+{
+  "MLFlexer/aiui.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "nvim-telescope/telescope.nvim",
+  },
 
-The primary aim of aiui is to create a cohesive suite of tools and modules that ensure a consistent user experience across diverse models.
+  init = function()
+    --adds default keybindings and initializes
+    require("aiui").add_defaults()
 
-This is achieved by abstracting the model-specific RPC (Remote Procedure Call) into a Lua module. This abstraction simplifies plugin implementation or user-driven development.
+    -- If NOT using the default setup:
+    -- add you LLM provider
+    -- local ModelCollection = require("aiui.ModelCollection")
+    -- local ollama_client = require("models.clients.ollama.ollama_curl")
+    -- ModelCollection:add_models(ollama_client:get_default_models())
 
-## Milestones
+    -- Add any agents you like
+    -- ModelCollection:add_agents({
+    -- 	default_agent = "You are a chatbot, answer short and concise.",
+    -- })
 
-### Chat window
-- [x] Having multiple chats at the same time
-- [x] Saving and loading old chats
-- [ ] @ and/or # references to reference specific code without having to paste it into the chat
-- [x] Use fuzzy search to create new chats with different models
-- [x] Use fuzzy search to load chats
-- [x] Streaming answers
-- [ ] Batching answers
-- [x] popup window chats
-- [ ] buffer window chats
+    -- Initialize the Chat and set default keybinds and autocmds
+    -- local Chat = require("aiui.Chat")
+    -- Chat:new({
+    --   name = "Mistral Tiny",
+    --   model = "mistral-tiny",
+    --   context = {},
+    --   agent = "default_agent",
+    -- })
+    -- Chat:apply_default_keymaps()
+    -- Chat:apply_autocmd()
+  end,
+}
+```
 
-### Inline interactions
-- [ ] module to abstract inline interactions
-- [x] git-like Diff-view when modifing codeblocks within a buffer
-- [ ] Fix-bug for visual mode, function and method interactions
-- [ ] Fix-error for visual mode, function and method interactions
-- [ ] improve readability for visual mode, function and method interactions
+Need help? Checkout how the default setup is done in: [aiui/defaults.lua](https://github.com/MLFlexer/aiui.nvim/blob/main/lua/defaults.lua) or ask in the [Discussions tab](https://github.com/MLFlexer/aiui.nvim/discussions).
+
+## Adding your own LLM client
+This section is unfinished, however you should implement the function annotations for the [ModelClient](https://github.com/MLFlexer/aiui.nvim/blob/main/lua/models/clients/ModelClient.lua). Need help, see [clients directory](https://github.com/MLFlexer/aiui.nvim/tree/main/lua/models/clients) or ask in the [Discussions tab](https://github.com/MLFlexer/aiui.nvim/discussions).
+
+## Roadmap
+
+### Chat Features
+- [x] Highly customizable.
+- [x] Support for concurrent chat instances.
+- [x] Persisting and retrieving chat history.
+- [ ] Code reference shortcuts (like `@some_function` or `/some_file`) within chats.
+- [x] New chat creation and retrieval via fuzzy search.
+- [x] Real-time chat streaming.
+- [x] Popup chat window.
+- [ ] Buffer chat window.
+
+### Inline Code Interactions
+- [x] Integrated diff views for in-buffer modifications.
+- [x] Quickly add comments, fix errors, ect. for visual selection.
+- [ ] LSP interactions to fix errors or other LSP warnings.
+- [ ] Start a Chat window with the visual selection.
