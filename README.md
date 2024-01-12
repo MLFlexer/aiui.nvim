@@ -8,10 +8,11 @@ Unify your development experience across different LLM providers with aiui.nvim'
 
 - **Unified LLM Interface**: Swap LLM providers on-the-fly while keeping your workflow consistent.
 - **In-Editor Chat**: Engage with LLMs in a familiar chat interface inside neovim.
-  - _**Demo Link**_![chat_demo](https://github.com/MLFlexer/aiui.nvim/assets/75012728/cf77ce24-ca48-491d-89b2-da4b8e79f82c)
+  ![chat_demo](https://github.com/MLFlexer/aiui.nvim/assets/75012728/cf77ce24-ca48-491d-89b2-da4b8e79f82c)
 
 - **Single buffer Code Difference**: Visualize LLM-suggested code changes directly within your buffer, akin to a git diff.
-  - _**Demo Link**_
+  ![diff_demo](https://github.com/MLFlexer/aiui.nvim/assets/75012728/52a57639-488f-409b-981b-cb8aea8b60ae)
+
 - **Chat Selection Convenience**: Fuzzy search-enabled model and instance switching or resuming past chats.
   - _**Demo Link**_
 - **Conversations as files**: Store chat logs as readable markdown and session data as json for external access.
