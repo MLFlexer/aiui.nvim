@@ -13,8 +13,7 @@ Unify your development experience across different LLM providers with aiui.nvim'
 - **Single buffer Code Difference**: Visualize LLM-suggested code changes directly within your buffer, akin to a git diff.
   ![diff_demo](https://github.com/MLFlexer/aiui.nvim/assets/75012728/52a57639-488f-409b-981b-cb8aea8b60ae)
 
-- **Chat Selection Convenience**: Fuzzy search-enabled model and instance switching or resuming past chats.
-  - _**Demo Link**_
+- **Fuzzy seach to select chats**: Fuzzy search-enabled model and instance switching or resuming past chats.
 - **Conversations as files**: Store chat logs as readable markdown and session data as json for external access.
 
 *Checkout the [roadmap](#Roadmap) for upcomming features*
