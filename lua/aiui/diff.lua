@@ -192,6 +192,7 @@ end
 ---and enableing modifing the buffer
 ---@param bufnr integer
 function diff.accept_all_changes(bufnr)
+	vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
 	vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
 end
 
