@@ -76,7 +76,7 @@ function defaults.add_chat_keybinds()
 			end
 
 			diff.diff_visual_lines(
-				{ name = "Mistral Tiny", model = "mistral-tiny", context = {}, agent = "default_agent" },
+				{ name = "Mistral Tiny", model = "gpt-3.5-turbo", context = {}, agent = "default_agent" },
 				prompt_formatter,
 				response_formatter
 			)
